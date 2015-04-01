@@ -2,11 +2,13 @@ package org.levelspace
 
 import java.awt.BorderLayout.CENTER
 import java.awt.{BorderLayout, GridLayout, FlowLayout}
+import java.awt.TextField
 import java.awt.event.KeyEvent.{VK_ENTER, VK_SHIFT, VK_ESCAPE}
 import java.awt.event.{TextEvent, TextListener}
 import java.awt.Dimension
 import javax.swing._
 import javax.swing.SpringLayout._
+import javax.swing.event.{DocumentListener, DocumentEvent}
 
 import org.nlogo.api.Dump
 import org.nlogo.api.NumberParser
@@ -32,8 +34,14 @@ class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W
   val codeProperty = new StringProperty[W]("CODE",
     Some((w, s) ⇒ { w.code = s; w.editor.setText(s) }),
     _.code)
+  val nameProperty = new StringProperty[W]("NAME",
+    Some((w, s) => { w.nameField.setText(s) }),
+    _.nameField.getText)
+  val argProperty = new StringProperty[W]("ARGS",
+    Some((w, s) => { w.argField.setText(s) }),
+    _.argField.getText)
   val defaultProperty = Some(codeProperty)
-  override def propertySet = super.propertySet ++ Set(codeProperty)
+  override def propertySet = super.propertySet ++ Set(codeProperty, nameProperty, argProperty)
 }
 
 class ProcedureWidget(
@@ -64,6 +72,7 @@ class ProcedureWidget(
   add(nameLabel)
 
   val nameField = new JTextField(10)
+  bindToProperty(nameField, kind.nameProperty)
   springLayout.putConstraint(WEST, nameField, smallSpace, EAST, nameLabel)
   springLayout.putConstraint(NORTH, nameField, smallSpace, NORTH, this)
   add(nameField)
@@ -74,6 +83,7 @@ class ProcedureWidget(
   add(argLabel)
 
   val argField = new JTextField()
+  bindToProperty(argField, kind.argProperty)
   springLayout.putConstraint(WEST, argField, smallSpace, EAST, argLabel)
   springLayout.putConstraint(NORTH, argField, smallSpace, NORTH, this)
   springLayout.putConstraint(EAST, argField, -bigSpace, EAST, this)
@@ -86,4 +96,12 @@ class ProcedureWidget(
   springLayout.putConstraint(SOUTH, scrollPane, -bigSpace, SOUTH, this)
   springLayout.putConstraint(EAST, scrollPane, -bigSpace, EAST, this)
   add(scrollPane)
+
+  def bindToProperty(field: JTextField, property: StringProperty[this.type]) =
+    field.getDocument().addDocumentListener(new DocumentListener {
+      override def changedUpdate(e: DocumentEvent): Unit = updateInState(property)
+      override def removeUpdate(e: DocumentEvent): Unit = updateInState(property)
+      override def insertUpdate(e: DocumentEvent): Unit = updateInState(property)
+    })
+
 }
