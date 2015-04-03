@@ -11,7 +11,10 @@ import javax.swing.SpringLayout._
 import javax.swing.event.{DocumentListener, DocumentEvent}
 
 import org.nlogo.api.Dump
+import org.nlogo.api.SimpleJobOwner
 import org.nlogo.api.NumberParser
+import org.nlogo.api.CompilerException
+import org.nlogo.api.Observer
 import org.nlogo.app.EditorFactory
 import org.nlogo.awt.EventQueue.invokeLater
 import org.nlogo.window.GUIWorkspace
@@ -27,28 +30,32 @@ import uk.ac.surrey.xw.api.WidgetKey
 import uk.ac.surrey.xw.api.swing.enrichComponent
 import uk.ac.surrey.xw.api.swing.newAction
 import uk.ac.surrey.xw.api.toRunnable
+import uk.ac.surrey.xw.api.swing.enrichJButton
 
 class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W] {
   val newWidget = new ProcedureWidget(_, _, _)
   val name = "PROCEDURE-WIDGET"
   val codeProperty = new StringProperty[W]("CODE",
-    Some((w, s) ⇒ { w.code = s; w.editor.setText(s) }),
-    _.code)
+    Some((w, s) ⇒ { w.code = s; w.editor.setText(s) }), _.code)
   val nameProperty = new StringProperty[W]("NAME",
-    Some((w, s) => { w.nameField.setText(s) }),
-    _.nameField.getText)
+    Some((w, s) => { w.nameField.setText(s) }), _.nameField.getText)
   val argProperty = new StringProperty[W]("ARGS",
-    Some((w, s) => { w.argField.setText(s) }),
-    _.argField.getText)
+    Some((w, s) => { w.argField.setText(s) }), _.argField.getText)
+  val saveProperty = new StringProperty[W]("SAVE-COMMAND",
+    Some(_.saveCommand = _), _.saveCommand)
+  val deleteProperty = new StringProperty[W]("DELETE-COMMAND",
+    Some(_.deleteCommand = _), _.deleteCommand)
   val defaultProperty = Some(codeProperty)
-  override def propertySet = super.propertySet ++ Set(codeProperty, nameProperty, argProperty)
+  override def propertySet = super.propertySet ++ Set(codeProperty, nameProperty, argProperty, saveProperty, deleteProperty)
 }
 
-class ProcedureWidget(
-  val key: WidgetKey,
-  val state: State,
-  val ws: GUIWorkspace)
-  extends LabeledPanelWidget {
+class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends LabeledPanelWidget {
+  val owner = new SimpleJobOwner(key, ws.world.mainRNG, classOf[Observer]) {
+    override def isButton = true
+    override def ownsPrimaryJobs = true
+  }
+  var saveCommand = ""
+  var deleteCommand = ""
 
   override val kind = new ProcedureWidgetKind[this.type]
   var code = ""
@@ -75,23 +82,44 @@ class ProcedureWidget(
   bindToProperty(nameField, kind.nameProperty)
   springLayout.putConstraint(WEST, nameField, smallSpace, EAST, nameLabel)
   springLayout.putConstraint(NORTH, nameField, smallSpace, NORTH, this)
+  //springLayout.putConstraint(EAST, nameField, -bigSpace, EAST, this)
   add(nameField)
 
+  val saveButton = new JButton("save")
+  saveButton.onActionPerformed(_ =>
+    try ws.evaluateCommands(owner, saveCommand, ws.world.observers, false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  )
+  springLayout.putConstraint(EAST, nameField, -bigSpace, WEST, saveButton)
+  springLayout.putConstraint(NORTH, saveButton, bigSpace, NORTH, this)
+  springLayout.putConstraint(EAST, saveButton, -bigSpace, EAST, this)
+  add(saveButton)
+
   val argLabel = new JLabel("Argument names:")
-  springLayout.putConstraint(WEST, argLabel, bigSpace, EAST, nameField)
-  springLayout.putConstraint(NORTH, argLabel, bigSpace, NORTH, this)
+  springLayout.putConstraint(WEST, argLabel, bigSpace, WEST, this)
+  springLayout.putConstraint(NORTH, argLabel, bigSpace+bigSpace, SOUTH, nameLabel)
   add(argLabel)
 
   val argField = new JTextField()
   bindToProperty(argField, kind.argProperty)
   springLayout.putConstraint(WEST, argField, smallSpace, EAST, argLabel)
-  springLayout.putConstraint(NORTH, argField, smallSpace, NORTH, this)
+  springLayout.putConstraint(NORTH, argField, smallSpace, SOUTH, nameField)
   springLayout.putConstraint(EAST, argField, -bigSpace, EAST, this)
   add(argField)
 
+  val deleteButton = new JButton("delete")
+  deleteButton.onActionPerformed(_ =>
+    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  )
+  springLayout.putConstraint(EAST, argField, -bigSpace, WEST, deleteButton)
+  springLayout.putConstraint(NORTH, deleteButton, bigSpace, SOUTH, saveButton)
+  springLayout.putConstraint(EAST, deleteButton, -bigSpace, EAST, this)
+  add(deleteButton)
+
   val scrollPane = new JScrollPane(editor)
-  springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, nameLabel)
-  springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, nameField)
+  springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, argLabel)
+  springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, argField)
   springLayout.putConstraint(WEST, scrollPane, bigSpace, WEST, this)
   springLayout.putConstraint(SOUTH, scrollPane, -bigSpace, SOUTH, this)
   springLayout.putConstraint(EAST, scrollPane, -bigSpace, EAST, this)
