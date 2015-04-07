@@ -15,6 +15,7 @@ import org.nlogo.api.SimpleJobOwner
 import org.nlogo.api.NumberParser
 import org.nlogo.api.CompilerException
 import org.nlogo.api.Observer
+import org.nlogo.api.LogoList
 import org.nlogo.app.EditorFactory
 import org.nlogo.awt.EventQueue.invokeLater
 import org.nlogo.window.GUIWorkspace
@@ -22,15 +23,12 @@ import org.nlogo.window.GUIWorkspace
 import javax.swing.{JScrollPane, JTextArea, JEditorPane, JTextField}
 import javax.swing.KeyStroke.getKeyStroke
 import uk.ac.surrey.xw.api.DoubleProperty
-import uk.ac.surrey.xw.api.LabeledPanelWidget
-import uk.ac.surrey.xw.api.LabeledPanelWidgetKind
-import uk.ac.surrey.xw.api.State
-import uk.ac.surrey.xw.api.StringProperty
-import uk.ac.surrey.xw.api.WidgetKey
+import uk.ac.surrey.xw.api._
 import uk.ac.surrey.xw.api.swing.enrichComponent
 import uk.ac.surrey.xw.api.swing.newAction
-import uk.ac.surrey.xw.api.toRunnable
 import uk.ac.surrey.xw.api.swing.enrichJButton
+
+import net.miginfocom.swing._
 
 class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W] {
   val newWidget = new ProcedureWidget(_, _, _)
@@ -131,5 +129,78 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
       override def removeUpdate(e: DocumentEvent): Unit = updateInState(property)
       override def insertUpdate(e: DocumentEvent): Unit = updateInState(property)
     })
+}
+
+class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
+  override val name = "RELATIONSHIP"
+  override val newWidget = new Relationship(_, _, _)
+
+  val selectedAgentReporterProperty = new StringProperty[W]("SELECTED-AGENT-REPORTER",
+    Some(_.selectedAgentReporter = _), _.selectedAgentReporter)
+
+  val availableAgentReporterProperty = new ListProperty[W]("AVAILABLE-AGENT-REPORTERS",
+    Some((w,o) => w.availableAgentReporters = o.toVector),
+    w => LogoList.fromIterator(w.availableAgentReporters.iterator))
+
+  val selectedProcedureProperty = new StringProperty[W]("SELECTED-PROCEDURE",
+    Some(_.selectedProcedure = _), _.selectedProcedure)
+
+  val availableProceduresProperty = new ListProperty[W]("AVAILABLE-PROCEDURES",
+    Some((w,o) => w.availableProcedures = o.toVector),
+    w => LogoList.fromIterator(w.availableProcedures.iterator))
+
+  override val defaultProperty = None
+  override def propertySet = super.propertySet ++ Set(
+    selectedAgentReporterProperty,
+    availableAgentReporterProperty,
+    selectedProcedureProperty,
+    availableProceduresProperty
+  )
+}
+
+class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends JPanel with JComponentWidget {
+  override val kind = new RelationshipKind[this.type]
+
+  /*
+  var _selectedAgentReporter = ""
+  var _availableAgentReporters = Seq.empty[String]
+  var _agentArgumentNames = Seq.empty[String]
+  var _selectedAgentArguments = Seq.empty[String]
+  var _availableAgentArguments = Seq.empty[Seq[String]]
+  var _selectedProcedure = ""
+  var _availableProcedures = Seq.empty[String]
+  var _procedureArgumentNames = Seq.empty[String]
+  var _procedureSelectedArguments = Seq.empty[String]
+  var _procedureAvailableArguments = Seq.empty[Seq[String]]
+*/
+
+  removeAll()
+  setLayout(new MigLayout("insets 5"))
+  add(new JLabel("ask"), "align right")
+  val agentSelector = new JComboBox()
+  add(agentSelector, "grow, wrap")
+
+  val agentArgumentPanel = new JPanel()
+  add(agentArgumentPanel, "grow, span, wrap")
+
+  add(new JLabel("to do"), "align right")
+  val procedureSelector = new JComboBox()
+  add(procedureSelector, "grow, wrap")
+
+  val procedureArgumentPanel = new JPanel()
+  add(procedureArgumentPanel, "grow, span, wrap")
+
+  def selectedAgentReporter = agentSelector.getSelectedItem.asInstanceOf[String]
+  def selectedAgentReporter_= (item: String) = agentSelector.setSelectedItem(item: AnyRef)
+  def availableAgentReporters = (0 until agentSelector.getItemCount).map(agentSelector.getItemAt _)
+  def availableAgentReporters_= (items: Iterable[AnyRef]) =
+    agentSelector.setModel(new DefaultComboBoxModel(items.toArray: Array[AnyRef]))
+
+  def selectedProcedure = procedureSelector.getSelectedItem.asInstanceOf[String]
+  def selectedProcedure_= (item: String) = procedureSelector.setSelectedItem(item: AnyRef)
+  def availableProcedures = (0 until procedureSelector.getItemCount).map(procedureSelector.getItemAt _)
+  def availableProcedures_= (items: Iterable[AnyRef]) =
+    procedureSelector.setModel(new DefaultComboBoxModel(items.toArray: Array[AnyRef]))
 
 }
+
