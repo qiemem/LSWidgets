@@ -27,6 +27,7 @@ import uk.ac.surrey.xw.api._
 import uk.ac.surrey.xw.api.swing.enrichComponent
 import uk.ac.surrey.xw.api.swing.newAction
 import uk.ac.surrey.xw.api.swing.enrichJButton
+import uk.ac.surrey.xw.api.swing.enrichItemSelectable
 
 import net.miginfocom.swing._
 
@@ -178,6 +179,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   setLayout(new MigLayout("insets 5"))
   add(new JLabel("ask"), "align right")
   val agentSelector = new JComboBox()
+  agentSelector.onItemStateChanged((e) => updateInState(kind.selectedAgentReporterProperty))
   add(agentSelector, "grow, wrap")
 
   val agentArgumentPanel = new JPanel()
@@ -185,22 +187,27 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   add(new JLabel("to do"), "align right")
   val procedureSelector = new JComboBox()
+  procedureSelector.onItemStateChanged((e) => updateInState(kind.selectedProcedureProperty))
   add(procedureSelector, "grow, wrap")
 
   val procedureArgumentPanel = new JPanel()
   add(procedureArgumentPanel, "grow, span, wrap")
 
-  def selectedAgentReporter = agentSelector.getSelectedItem.asInstanceOf[String]
+  def selectedAgentReporter = Option(agentSelector.getSelectedItem).map(_.toString).getOrElse("")
   def selectedAgentReporter_= (item: String) = agentSelector.setSelectedItem(item: AnyRef)
   def availableAgentReporters = (0 until agentSelector.getItemCount).map(agentSelector.getItemAt _)
-  def availableAgentReporters_= (items: Iterable[AnyRef]) =
+  def availableAgentReporters_= (items: Iterable[AnyRef]) = {
     agentSelector.setModel(new DefaultComboBoxModel(items.toArray: Array[AnyRef]))
+    updateInState(kind.selectedAgentReporterProperty)
+  }
 
-  def selectedProcedure = procedureSelector.getSelectedItem.asInstanceOf[String]
+  def selectedProcedure = Option(procedureSelector.getSelectedItem).map(_.toString).getOrElse("")
   def selectedProcedure_= (item: String) = procedureSelector.setSelectedItem(item: AnyRef)
   def availableProcedures = (0 until procedureSelector.getItemCount).map(procedureSelector.getItemAt _)
-  def availableProcedures_= (items: Iterable[AnyRef]) =
+  def availableProcedures_= (items: Iterable[AnyRef]) = {
     procedureSelector.setModel(new DefaultComboBoxModel(items.toArray: Array[AnyRef]))
+    updateInState(kind.selectedProcedureProperty)
+  }
 
 }
 
