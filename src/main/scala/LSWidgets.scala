@@ -4,7 +4,7 @@ import java.awt.BorderLayout.CENTER
 import java.awt.{BorderLayout, GridLayout, FlowLayout}
 import java.awt.TextField
 import java.awt.event.KeyEvent.{VK_ENTER, VK_SHIFT, VK_ESCAPE}
-import java.awt.event.{TextEvent, TextListener}
+import java.awt.event.{TextEvent, TextListener, ItemEvent}
 import java.awt.Dimension
 import javax.swing._
 import javax.swing.SpringLayout._
@@ -150,17 +150,32 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     Some((w,o) => w.availableProcedures = o.toVector),
     w => LogoList.fromIterator(w.availableProcedures.iterator))
 
+  val saveCommandProperty = new StringProperty[W]("SAVE-COMMAND",
+    Some(_.saveCommand = _), _.saveCommand)
+
+  val deleteCommandProperty = new StringProperty[W]("DELETE-COMMAND",
+    Some(_.deleteCommand = _), _.deleteCommand)
+
   override val defaultProperty = None
   override def propertySet = super.propertySet ++ Set(
     selectedAgentReporterProperty,
     availableAgentReporterProperty,
     selectedProcedureProperty,
-    availableProceduresProperty
+    availableProceduresProperty,
+    saveCommandProperty,
+    deleteCommandProperty
   )
 }
 
 class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends JPanel with JComponentWidget {
   override val kind = new RelationshipKind[this.type]
+  val owner = new SimpleJobOwner(key, ws.world.mainRNG, classOf[Observer]) {
+    override def isButton = true
+    override def ownsPrimaryJobs = true
+  }
+
+  var saveCommand = ""
+  var deleteCommand = ""
 
   /*
   var _selectedAgentReporter = ""
@@ -179,7 +194,10 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   setLayout(new MigLayout("insets 5"))
   add(new JLabel("ask"), "align right")
   val agentSelector = new JComboBox()
-  agentSelector.onItemStateChanged((e) => updateInState(kind.selectedAgentReporterProperty))
+  agentSelector.onItemStateChanged { event ⇒
+    if (event.getStateChange == ItemEvent.SELECTED)
+      updateInState(kind.selectedAgentReporterProperty)
+  }
   add(agentSelector, "grow, wrap")
 
   val agentArgumentPanel = new JPanel()
@@ -187,26 +205,48 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   add(new JLabel("to do"), "align right")
   val procedureSelector = new JComboBox()
-  procedureSelector.onItemStateChanged((e) => updateInState(kind.selectedProcedureProperty))
+  procedureSelector.onItemStateChanged { event ⇒
+    if (event.getStateChange == ItemEvent.SELECTED)
+      updateInState(kind.selectedProcedureProperty)
+  }
   add(procedureSelector, "grow, wrap")
 
   val procedureArgumentPanel = new JPanel()
   add(procedureArgumentPanel, "grow, span, wrap")
 
+  val buttonPanel = new JPanel()
+  val saveButton = new JButton("save")
+  buttonPanel.add(saveButton)
+  saveButton.onActionPerformed(_ =>
+    try ws.evaluateCommands(owner, saveCommand, ws.world.observers, false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  )
+
+  val deleteButton = new JButton("delete")
+  buttonPanel.add(deleteButton)
+  deleteButton.onActionPerformed(_ =>
+    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  )
+
+  add(buttonPanel, "grow, span")
+
   def selectedAgentReporter = Option(agentSelector.getSelectedItem).map(_.toString).getOrElse("")
   def selectedAgentReporter_= (item: String) = agentSelector.setSelectedItem(item: AnyRef)
   def availableAgentReporters = (0 until agentSelector.getItemCount).map(agentSelector.getItemAt _)
-  def availableAgentReporters_= (items: Iterable[AnyRef]) = {
-    agentSelector.setModel(new DefaultComboBoxModel(items.toArray: Array[AnyRef]))
-    updateInState(kind.selectedAgentReporterProperty)
+  def availableAgentReporters_= (items: Seq[AnyRef]) = {
+    agentSelector.removeAllItems()
+    items.foreach(agentSelector.addItem(_))
+    agentSelector.setSelectedItem(items.headOption.orNull)
   }
 
   def selectedProcedure = Option(procedureSelector.getSelectedItem).map(_.toString).getOrElse("")
   def selectedProcedure_= (item: String) = procedureSelector.setSelectedItem(item: AnyRef)
   def availableProcedures = (0 until procedureSelector.getItemCount).map(procedureSelector.getItemAt _)
   def availableProcedures_= (items: Iterable[AnyRef]) = {
-    procedureSelector.setModel(new DefaultComboBoxModel(items.toArray: Array[AnyRef]))
-    updateInState(kind.selectedProcedureProperty)
+    procedureSelector.removeAllItems()
+    items.foreach(procedureSelector.addItem(_))
+    procedureSelector.setSelectedItem(items.headOption.orNull)
   }
 
 }
