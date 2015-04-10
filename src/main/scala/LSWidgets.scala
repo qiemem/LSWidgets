@@ -32,8 +32,12 @@ import uk.ac.surrey.xw.api.swing.enrichItemSelectable
 import net.miginfocom.swing._
 
 class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W] {
+  import Enhancer._
   val newWidget = new ProcedureWidget(_, _, _)
   val name = "PROCEDURE-WIDGET"
+
+  val typeProperty = new StringProperty[W]("TYPE",
+    Some((w,s) => w.typeChooser.selectedItem = s), _.typeChooser.selectedItem)
   val codeProperty = new StringProperty[W]("CODE",
     Some((w, s) ⇒ { w.code = s; w.editor.setText(s) }), _.code)
   val nameProperty = new StringProperty[W]("NAME",
@@ -45,7 +49,8 @@ class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W
   val deleteProperty = new StringProperty[W]("DELETE-COMMAND",
     Some(_.deleteCommand = _), _.deleteCommand)
   val defaultProperty = Some(codeProperty)
-  override def propertySet = super.propertySet ++ Set(codeProperty, nameProperty, argProperty, saveProperty, deleteProperty)
+  override def propertySet = super.propertySet ++ Set(typeProperty, codeProperty, nameProperty, argProperty,
+    saveProperty, deleteProperty)
 }
 
 class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends LabeledPanelWidget {
@@ -72,27 +77,47 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
   val bigSpace = 5
   val smallSpace = 3
 
-  val nameLabel = new JLabel("Name:")
-  springLayout.putConstraint(WEST, nameLabel, bigSpace, WEST, this)
-  springLayout.putConstraint(NORTH, nameLabel, bigSpace, NORTH, this)
-  add(nameLabel)
-
-  val nameField = new JTextField(10)
-  bindToProperty(nameField, kind.nameProperty)
-  springLayout.putConstraint(WEST, nameField, smallSpace, EAST, nameLabel)
-  springLayout.putConstraint(NORTH, nameField, smallSpace, NORTH, this)
-  //springLayout.putConstraint(EAST, nameField, -bigSpace, EAST, this)
-  add(nameField)
-
   val saveButton = new JButton("save")
   saveButton.onActionPerformed(_ =>
     try ws.evaluateCommands(owner, saveCommand, ws.world.observers, false)
     catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
   )
-  springLayout.putConstraint(EAST, nameField, -bigSpace, WEST, saveButton)
+  springLayout.putConstraint(WEST, saveButton, bigSpace, WEST, this)
   springLayout.putConstraint(NORTH, saveButton, bigSpace, NORTH, this)
-  springLayout.putConstraint(EAST, saveButton, -bigSpace, EAST, this)
   add(saveButton)
+
+  val deleteButton = new JButton("delete")
+  deleteButton.onActionPerformed(_ =>
+    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  )
+  springLayout.putConstraint(NORTH, deleteButton, bigSpace, NORTH, this)
+  springLayout.putConstraint(WEST, deleteButton, bigSpace, EAST, saveButton)
+  add(deleteButton)
+
+  val typeChooser = new JComboBox(Array("agentset", "command", "reporter"): Array[AnyRef])
+  springLayout.putConstraint(WEST, typeChooser, bigSpace, EAST, deleteButton)
+  springLayout.putConstraint(NORTH, typeChooser, bigSpace, NORTH, this)
+  add(typeChooser)
+
+  typeChooser.onItemStateChanged { event ⇒
+    if (event.getStateChange == ItemEvent.SELECTED)
+      updateInState(kind.typeProperty)
+  }
+
+  updateInState(kind.typeProperty)
+
+  val nameLabel = new JLabel("Name:")
+  springLayout.putConstraint(WEST, nameLabel, bigSpace, WEST, this)
+  springLayout.putConstraint(NORTH, nameLabel, bigSpace, SOUTH, typeChooser)
+  add(nameLabel)
+
+  val nameField = new JTextField(10)
+  bindToProperty(nameField, kind.nameProperty)
+  springLayout.putConstraint(WEST, nameField, smallSpace, EAST, nameLabel)
+  springLayout.putConstraint(NORTH, nameField, smallSpace, SOUTH, typeChooser)
+  springLayout.putConstraint(EAST, nameField, -bigSpace, EAST, this)
+  add(nameField)
 
   val argLabel = new JLabel("Argument names:")
   springLayout.putConstraint(WEST, argLabel, bigSpace, WEST, this)
@@ -105,16 +130,6 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
   springLayout.putConstraint(NORTH, argField, smallSpace, SOUTH, nameField)
   springLayout.putConstraint(EAST, argField, -bigSpace, EAST, this)
   add(argField)
-
-  val deleteButton = new JButton("delete")
-  deleteButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, false)
-    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
-  )
-  springLayout.putConstraint(EAST, argField, -bigSpace, WEST, deleteButton)
-  springLayout.putConstraint(NORTH, deleteButton, bigSpace, SOUTH, saveButton)
-  springLayout.putConstraint(EAST, deleteButton, -bigSpace, EAST, this)
-  add(deleteButton)
 
   val scrollPane = new JScrollPane(editor)
   springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, argLabel)
@@ -133,28 +148,34 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
 }
 
 class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
+  import Enhancer._
+
   override val name = "RELATIONSHIP"
   override val newWidget = new Relationship(_, _, _)
 
   val selectedAgentReporterProperty = new StringProperty[W]("SELECTED-AGENT-REPORTER",
-    Some(_.selectedAgentReporter = _), _.selectedAgentReporter)
+    Some((w,s) => w.agentSelector.selectedItem = s), _.agentSelector.selectedItem)
 
   val availableAgentReporterProperty = new ListProperty[W]("AVAILABLE-AGENT-REPORTERS",
-    Some((w,o) => w.availableAgentReporters = o.toVector),
-    w => LogoList.fromIterator(w.availableAgentReporters.iterator))
+    Some((w,l) => w.agentSelector.items = l.toVector), _.agentSelector.items.toLogo)
 
   val selectedProcedureProperty = new StringProperty[W]("SELECTED-PROCEDURE",
-    Some(_.selectedProcedure = _), _.selectedProcedure)
+    Some((w,s) => w.procedureSelector.selectedItem = s), _.procedureSelector.selectedItem)
 
   val availableProceduresProperty = new ListProperty[W]("AVAILABLE-PROCEDURES",
-    Some((w,o) => w.availableProcedures = o.toVector),
-    w => LogoList.fromIterator(w.availableProcedures.iterator))
+    Some((w,l) => w.procedureSelector.items = l.toVector), _.procedureSelector.items.toLogo)
 
   val saveCommandProperty = new StringProperty[W]("SAVE-COMMAND",
     Some(_.saveCommand = _), _.saveCommand)
 
   val deleteCommandProperty = new StringProperty[W]("DELETE-COMMAND",
     Some(_.deleteCommand = _), _.deleteCommand)
+
+  val selectedProcedureArguments = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENTS",
+    Some((w, l) => w.selectedProcedureArguments = l), _.selectedProcedureArguments)
+
+  val availableProcedureArguments = new ListProperty[W]("AVAILABLE-PROCEDURE-ARGUMENTS",
+    Some((w,l) => w.availableProcedureArguments = l), _.availableProcedureArguments)
 
   override val defaultProperty = None
   override def propertySet = super.propertySet ++ Set(
@@ -163,32 +184,26 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     selectedProcedureProperty,
     availableProceduresProperty,
     saveCommandProperty,
-    deleteCommandProperty
+    deleteCommandProperty,
+    selectedProcedureArguments,
+    availableProcedureArguments
   )
 }
 
 class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends JPanel with JComponentWidget {
+  import Enhancer._
+
   override val kind = new RelationshipKind[this.type]
   val owner = new SimpleJobOwner(key, ws.world.mainRNG, classOf[Observer]) {
     override def isButton = true
     override def ownsPrimaryJobs = true
   }
 
+  var procedureArgumentNames = Seq.empty[String]
+  var procedureArgumentSelectors = Seq.empty[JComboBox]
+
   var saveCommand = ""
   var deleteCommand = ""
-
-  /*
-  var _selectedAgentReporter = ""
-  var _availableAgentReporters = Seq.empty[String]
-  var _agentArgumentNames = Seq.empty[String]
-  var _selectedAgentArguments = Seq.empty[String]
-  var _availableAgentArguments = Seq.empty[Seq[String]]
-  var _selectedProcedure = ""
-  var _availableProcedures = Seq.empty[String]
-  var _procedureArgumentNames = Seq.empty[String]
-  var _procedureSelectedArguments = Seq.empty[String]
-  var _procedureAvailableArguments = Seq.empty[Seq[String]]
-*/
 
   removeAll()
   setLayout(new MigLayout("insets 5"))
@@ -218,36 +233,75 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   val saveButton = new JButton("save")
   buttonPanel.add(saveButton)
   saveButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, saveCommand, ws.world.observers, false)
+    try ws.evaluateCommands(owner, saveCommand, ws.world.observers, waitForCompletion = false)
     catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
   )
 
   val deleteButton = new JButton("delete")
   buttonPanel.add(deleteButton)
   deleteButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, false)
+    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, waitForCompletion = false)
     catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
   )
 
   add(buttonPanel, "grow, span")
 
-  def selectedAgentReporter = Option(agentSelector.getSelectedItem).map(_.toString).getOrElse("")
-  def selectedAgentReporter_= (item: String) = agentSelector.setSelectedItem(item: AnyRef)
-  def availableAgentReporters = (0 until agentSelector.getItemCount).map(agentSelector.getItemAt _)
-  def availableAgentReporters_= (items: Seq[AnyRef]) = {
-    agentSelector.removeAllItems()
-    items.foreach(agentSelector.addItem(_))
-    agentSelector.setSelectedItem(items.headOption.orNull)
+  def selectedProcedureArguments =
+    procedureArgumentNames.zip(procedureArgumentSelectors.map(_.selectedItem)).map(p => LogoList(p._1, p._2)).toLogo
+
+  def selectedProcedureArguments_= (args: LogoList): Unit = procedureArgumentSelectors.zip(args.toVector).foreach {
+    case ((selector, arg)) => selector.selectedItem = arg.toString
   }
 
-  def selectedProcedure = Option(procedureSelector.getSelectedItem).map(_.toString).getOrElse("")
-  def selectedProcedure_= (item: String) = procedureSelector.setSelectedItem(item: AnyRef)
-  def availableProcedures = (0 until procedureSelector.getItemCount).map(procedureSelector.getItemAt _)
-  def availableProcedures_= (items: Iterable[AnyRef]) = {
-    procedureSelector.removeAllItems()
-    items.foreach(procedureSelector.addItem(_))
-    procedureSelector.setSelectedItem(items.headOption.orNull)
+  def availableProcedureArguments =
+    procedureArgumentNames.zip(procedureArgumentSelectors.map(_.items.toLogo)).map(p => LogoList(p._1, p._2)).toLogo
+
+  def availableProcedureArguments_= (list: LogoList) = {
+    val (names, items) = list.map(_.asInstanceOf[LogoList]).map { l =>
+      l.get(0).toString -> l.get(1).asInstanceOf[LogoList].map(_.toString)
+    }.toSeq.unzip
+    procedureArgumentNames = names
+    procedureArgumentSelectors = items.map(opts => new JComboBox(opts.toArray: Array[AnyRef])).toSeq
+
+    procedureArgumentPanel.removeAll()
+    procedureArgumentPanel.setLayout(new MigLayout())
+    procedureArgumentNames.zip(procedureArgumentSelectors).foreach {
+      case (name: String, selector: JComboBox) =>
+        procedureArgumentPanel.add(new JLabel(name))
+        procedureArgumentPanel.add(selector, "grow, wrap")
+        selector.onItemStateChanged { event =>
+          if (event.getStateChange == ItemEvent.SELECTED)
+            updateInState(kind.selectedProcedureArguments)
+        }
+        if (selector.getItemCount > 0) selector.setSelectedIndex(0)
+        updateInState(kind.selectedProcedureArguments)
+    }
   }
 
 }
 
+object Enhancer {
+
+  case class SComboBox(comboBox: JComboBox) {
+    def selectedItem: String = Option(comboBox.getSelectedItem).map(_.toString).getOrElse("")
+
+    def selectedItem_=(item: String) = comboBox.setSelectedItem(item)
+
+    def items: Seq[String] = (0 until comboBox.getItemCount).map(comboBox.getItemAt(_).toString)
+
+    def items_=(items: Seq[AnyRef]) = {
+      comboBox.removeAllItems()
+      items.foreach(comboBox.addItem)
+      comboBox.setSelectedItem(items.headOption.orNull)
+    }
+  }
+
+  implicit def toSComboBox(comboBox: JComboBox): SComboBox = SComboBox(comboBox)
+
+  case class LogoSeq(seq: Seq[AnyRef]) {
+    def toLogo: LogoList = LogoList.fromIterator(seq.iterator)
+  }
+
+  implicit def toLogoSeq(seq: Seq[AnyRef]): LogoSeq = LogoSeq(seq)
+
+}
