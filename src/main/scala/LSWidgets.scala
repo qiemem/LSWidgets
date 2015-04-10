@@ -1,38 +1,18 @@
 package org.levelspace
 
-import java.awt.BorderLayout.CENTER
-import java.awt.{BorderLayout, GridLayout, FlowLayout}
-import java.awt.TextField
-import java.awt.event.KeyEvent.{VK_ENTER, VK_SHIFT, VK_ESCAPE}
-import java.awt.event.{TextEvent, TextListener, ItemEvent}
-import java.awt.Dimension
-import javax.swing._
+import java.awt.event.{ItemEvent, TextEvent, TextListener}
 import javax.swing.SpringLayout._
-import javax.swing.event.{DocumentListener, DocumentEvent}
-
-import org.nlogo.api.Dump
-import org.nlogo.api.SimpleJobOwner
-import org.nlogo.api.NumberParser
-import org.nlogo.api.CompilerException
-import org.nlogo.api.Observer
-import org.nlogo.api.LogoList
-import org.nlogo.app.EditorFactory
-import org.nlogo.awt.EventQueue.invokeLater
-import org.nlogo.window.GUIWorkspace
-
-import javax.swing.{JScrollPane, JTextArea, JEditorPane, JTextField}
-import javax.swing.KeyStroke.getKeyStroke
-import uk.ac.surrey.xw.api.DoubleProperty
-import uk.ac.surrey.xw.api._
-import uk.ac.surrey.xw.api.swing.enrichComponent
-import uk.ac.surrey.xw.api.swing.newAction
-import uk.ac.surrey.xw.api.swing.enrichJButton
-import uk.ac.surrey.xw.api.swing.enrichItemSelectable
+import javax.swing.event.{DocumentEvent, DocumentListener}
+import javax.swing._
 
 import net.miginfocom.swing._
+import org.nlogo.api.{CompilerException, LogoList, Observer, SimpleJobOwner}
+import org.nlogo.app.EditorFactory
+import org.nlogo.window.GUIWorkspace
+import uk.ac.surrey.xw.api._
+import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichJButton}
 
 class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W] {
-  import Enhancer._
   val newWidget = new ProcedureWidget(_, _, _)
   val name = "PROCEDURE-WIDGET"
 
@@ -149,7 +129,7 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
 }
 
 class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
-  import Enhancer._
+  import org.levelspace.Enhancer._
 
   override val name = "RELATIONSHIP"
   override val newWidget = new Relationship(_, _, _)
@@ -192,7 +172,7 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
 }
 
 class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends JPanel with JComponentWidget {
-  import Enhancer._
+  import org.levelspace.Enhancer._
 
   override val kind = new RelationshipKind[this.type]
   val owner = new SimpleJobOwner(key, ws.world.mainRNG, classOf[Observer]) {
