@@ -199,8 +199,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
     override def ownsPrimaryJobs = true
   }
 
-  var procedureArgumentNames = Seq.empty[String]
-  var procedureArgumentSelectors = Seq.empty[JComboBox]
+  var procedureArguments = Map.empty[String, JComboBox]
 
   var saveCommand = ""
   var deleteCommand = ""
@@ -247,25 +246,32 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   add(buttonPanel, "grow, span")
 
   def selectedProcedureArguments =
-    procedureArgumentNames.zip(procedureArgumentSelectors.map(_.selectedItem)).map(p => LogoList(p._1, p._2)).toLogo
+    procedureArguments.map {case (name: String, comboBox: JComboBox) => LogoList(name, comboBox.selectedItem)}.toSeq
+      .toLogo
 
-  def selectedProcedureArguments_= (args: LogoList): Unit = procedureArgumentSelectors.zip(args.toVector).foreach {
-    case ((selector, arg)) => selector.selectedItem = arg.toString
+  def selectedProcedureArguments_= (args: LogoList): Unit = args.foreach {
+    case arg: LogoList =>
+      val name = arg.get(0).asInstanceOf[String]
+      val value = arg.get(1).asInstanceOf[String]
+      procedureArguments(name).selectedItem = value
+    case x =>
+      ws.warningMessage("Invalid selection item: " + x.toString)
   }
 
   def availableProcedureArguments =
-    procedureArgumentNames.zip(procedureArgumentSelectors.map(_.items.toLogo)).map(p => LogoList(p._1, p._2)).toLogo
+    procedureArguments.map {
+      case (name: String, comboBox: JComboBox) => LogoList(name, comboBox.items.toLogo)
+    }.toSeq.toLogo
 
   def availableProcedureArguments_= (list: LogoList) = {
     val (names, items) = list.map(_.asInstanceOf[LogoList]).map { l =>
       l.get(0).toString -> l.get(1).asInstanceOf[LogoList].map(_.toString)
     }.toSeq.unzip
-    procedureArgumentNames = names
-    procedureArgumentSelectors = items.map(opts => new JComboBox(opts.toArray: Array[AnyRef])).toSeq
+    procedureArguments = names.zip(items.map(opts => new JComboBox(opts.toArray: Array[AnyRef]))).toMap
 
     procedureArgumentPanel.removeAll()
     procedureArgumentPanel.setLayout(new MigLayout())
-    procedureArgumentNames.zip(procedureArgumentSelectors).foreach {
+    procedureArguments.foreach {
       case (name: String, selector: JComboBox) =>
         procedureArgumentPanel.add(new JLabel(name))
         procedureArgumentPanel.add(selector, "grow, wrap")
@@ -276,6 +282,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
         if (selector.getItemCount > 0) selector.setSelectedIndex(0)
         updateInState(kind.selectedProcedureArguments)
     }
+    procedureArgumentPanel.revalidate()
   }
 
 }
