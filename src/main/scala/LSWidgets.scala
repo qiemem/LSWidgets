@@ -16,8 +16,6 @@ class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W
   val newWidget = new ProcedureWidget(_, _, _)
   val name = "PROCEDURE-WIDGET"
 
-  val typeProperty = new StringProperty[W]("TYPE",
-    Some((w,s) => w.typeChooser.selectedItem = s), _.typeChooser.selectedItem)
   val codeProperty = new StringProperty[W]("CODE",
     Some((w, s) ⇒ { w.code = s; w.editor.setText(s) }), _.code)
   val nameProperty = new StringProperty[W]("NAME",
@@ -29,7 +27,7 @@ class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W
   val deleteProperty = new StringProperty[W]("DELETE-COMMAND",
     Some(_.deleteCommand = _), _.deleteCommand)
   val defaultProperty = Some(codeProperty)
-  override def propertySet = super.propertySet ++ Set(typeProperty, codeProperty, nameProperty, argProperty,
+  override def propertySet = super.propertySet ++ Set(codeProperty, nameProperty, argProperty,
     saveProperty, deleteProperty)
 }
 
@@ -62,8 +60,8 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
     try ws.evaluateCommands(owner, saveCommand, ws.world.observers, false)
     catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
   )
-  springLayout.putConstraint(WEST, saveButton, bigSpace, WEST, this)
   springLayout.putConstraint(NORTH, saveButton, bigSpace, NORTH, this)
+  springLayout.putConstraint(WEST, saveButton, bigSpace, WEST, this)
   add(saveButton)
 
   val deleteButton = new JButton("delete")
@@ -75,29 +73,18 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
   springLayout.putConstraint(WEST, deleteButton, bigSpace, EAST, saveButton)
   add(deleteButton)
 
-  val typeChooser: XWComboBox = new XWComboBox(() => updateInState(kind.typeProperty))
-  typeChooser.items = Seq("agentset", "command", "reporter")
-  springLayout.putConstraint(WEST, typeChooser, bigSpace, EAST, deleteButton)
-  springLayout.putConstraint(NORTH, typeChooser, bigSpace, NORTH, this)
-  add(typeChooser)
-
-  typeChooser.onItemStateChanged { event ⇒
-    if (event.getStateChange == ItemEvent.SELECTED)
-      updateInState(kind.typeProperty)
-  }
-
-  updateInState(kind.typeProperty)
-
   val nameLabel = new JLabel("Name:")
   springLayout.putConstraint(WEST, nameLabel, bigSpace, WEST, this)
-  springLayout.putConstraint(NORTH, nameLabel, bigSpace, SOUTH, typeChooser)
+  springLayout.putConstraint(NORTH, nameLabel, bigSpace, SOUTH, saveButton)
+  springLayout.putConstraint(NORTH, nameLabel, bigSpace, SOUTH, deleteButton)
   add(nameLabel)
 
   val nameField = new JTextField(10)
   bindToProperty(nameField, kind.nameProperty)
   springLayout.putConstraint(WEST, nameField, smallSpace, EAST, nameLabel)
-  springLayout.putConstraint(NORTH, nameField, smallSpace, SOUTH, typeChooser)
   springLayout.putConstraint(EAST, nameField, -bigSpace, EAST, this)
+  springLayout.putConstraint(NORTH, nameField, bigSpace, SOUTH, saveButton)
+  springLayout.putConstraint(NORTH, nameField, bigSpace, SOUTH, deleteButton)
   add(nameField)
 
   val argLabel = new JLabel("Argument names:")
