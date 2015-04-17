@@ -11,6 +11,7 @@ import org.nlogo.api.{CompilerException, LogoList, Observer, SimpleJobOwner}
 import org.nlogo.app.EditorFactory
 import org.nlogo.window.GUIWorkspace
 import uk.ac.surrey.xw.api._
+import uk.ac.surrey.xw.api.ExtraWidget
 import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichJButton}
 
 class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W] {
@@ -32,7 +33,9 @@ class ProcedureWidgetKind[W <: ProcedureWidget] extends LabeledPanelWidgetKind[W
     saveProperty, deleteProperty)
 }
 
-class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace) extends LabeledPanelWidget {
+class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUIWorkspace) extends LabeledPanelWidget {
+  import org.levelspace.Enhancer._
+
   val owner = new SimpleJobOwner(key, ws.world.mainRNG, classOf[Observer]) {
     override def isButton = true
     override def ownsPrimaryJobs = true
@@ -52,8 +55,8 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
     false
   )
 
-  val saveButton: JButton = makeButton("save", tryCompilation(() => saveCommand))
-  val deleteButton: JButton = makeButton("delete", tryCompilation(() => deleteCommand))
+  val saveButton: JButton = makeButton("save", tryCompilation(ws, owner, () => saveCommand))
+  val deleteButton: JButton = makeButton("delete", tryCompilation(ws, owner, () => deleteCommand))
   val nameField: JTextField = boundTextField(10, kind.nameProperty)
   val argField: JTextField = boundTextField(0, kind.argProperty)
 
@@ -91,22 +94,12 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
       override def insertUpdate(e: DocumentEvent): Unit = updateInState(property)
     })
 
-  private def tryCompilation(code: () => String)(e: ActionEvent) = {
-    try ws.evaluateCommands(owner, code(), ws.world.observers, waitForCompletion = false)
-    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
-  }
-
   private def boundTextField(i: Int, prop: StringProperty[this.type]) = {
     val t = new JTextField(i)
     bindToProperty(t, prop)
     t
   }
 
-  private def makeButton[T](text: String, f: ActionEvent => T) = {
-    val b = new JButton(text)
-    b.onActionPerformed(f)
-    b
-  }
 }
 
 class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
@@ -139,6 +132,12 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val availableProcedureArguments = new ListProperty[W]("AVAILABLE-PROCEDURE-ARGUMENTS",
     Some((w,l) => w.availableProcedureArguments = l), _.availableProcedureArguments)
 
+  val selectedAgentsetArguments = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENTS",
+    Some((w,l) => w.selectedAgentsetArguments = l), _.selectedAgentsetArguments)
+
+  val availableAgentsetArguments = new ListProperty[W]("AVAILABLE-AGENTSET-ARGUMENTS",
+    Some((w,l) => w.availableAgentsetArguments = l), _.availableAgentsetArguments)
+
   override val defaultProperty = None
   override def propertySet = super.propertySet ++ Set(
     selectedAgentReporterProperty,
@@ -148,7 +147,9 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     saveCommandProperty,
     deleteCommandProperty,
     selectedProcedureArguments,
-    availableProcedureArguments
+    availableProcedureArguments,
+    selectedAgentsetArguments,
+    availableAgentsetArguments
   )
 }
 
@@ -162,6 +163,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   }
 
   var procedureArguments = Map.empty[String, XWComboBox]
+  var agentsetArguments  = Map.empty[String, XWComboBox]
 
   var saveCommand = ""
   var deleteCommand = ""
@@ -175,6 +177,9 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   val agentArgumentPanel = new JPanel()
   add(agentArgumentPanel, "grow, span, wrap")
 
+  val agentsetArgumentPanel = new JPanel()
+  add(agentsetArgumentPanel, "grow, span, wrap")
+
   add(new JLabel("commands"), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
   add(procedureSelector, "grow, wrap")
@@ -183,69 +188,80 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   add(procedureArgumentPanel, "grow, span, wrap")
 
   val buttonPanel = new JPanel()
-  val saveButton = new JButton("save")
+  val saveButton = makeButton("save", tryCompilation(ws, owner, () => saveCommand))
   buttonPanel.add(saveButton)
-  saveButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, saveCommand, ws.world.observers, waitForCompletion = false)
-    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
-  )
 
-  val deleteButton = new JButton("delete")
+  val deleteButton = makeButton("delete", tryCompilation(ws, owner, () => deleteCommand))
   buttonPanel.add(deleteButton)
-  deleteButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, waitForCompletion = false)
-    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
-  )
 
   add(buttonPanel, "grow, span")
 
-  def selectedProcedureArguments =
-    procedureArguments.map {
-      case (name: String, comboBox: XWComboBox) => LogoList(name, comboBox.selectedItem)
-    }.toSeq.toLogo
+  def selectedAgentsetArguments = selectedArguments(agentsetArguments)
+  def selectedAgentsetArguments_=(args: LogoList): Unit = setSelectedArguments(agentsetArguments, args)
 
-  def selectedProcedureArguments_= (args: LogoList): Unit = args.foreach {
-    case arg: LogoList =>
-      val name = arg.get(0).asInstanceOf[String]
-      val value = arg.get(1).asInstanceOf[String]
-      procedureArguments(name).selectedItem = value
-    case x =>
-      ws.warningMessage("Invalid selection item: " + x.toString)
-  }
+  def availableAgentsetArguments = availableArguments(agentsetArguments)
+  def availableAgentsetArguments_=(args: LogoList) =
+    agentsetArguments = setAvailableArguments(
+      args, agentsetArgumentPanel, () => updateInState(kind.selectedAgentsetArguments))
 
-  def availableProcedureArguments =
+  def selectedProcedureArguments = selectedArguments(procedureArguments)
+  def selectedProcedureArguments_=(args: LogoList): Unit = setSelectedArguments(procedureArguments, args)
+
+  def availableProcedureArguments = availableArguments(procedureArguments)
+  def availableProcedureArguments_=(args: LogoList) =
+    procedureArguments = setAvailableArguments(
+      args, procedureArgumentPanel, () => updateInState(kind.selectedProcedureArguments))
+
+  private def availableArguments(args: Map[String, XWComboBox]): LogoList =
     procedureArguments.map {
       case (name: String, comboBox: XWComboBox) => LogoList(name, comboBox.items.toLogo)
     }.toSeq.toLogo
 
-  def availableProcedureArguments_= (list: LogoList) = {
-    val (names, items) = list.map(_.asInstanceOf[LogoList]).map { l =>
+  private def selectedArguments(args: Map[String, XWComboBox]): LogoList =
+    args.map {
+      case (name: String, comboBox: XWComboBox) => LogoList(name, comboBox.selectedItem)
+    }.toSeq.toLogo
+
+  private def setSelectedArguments(args: Map[String, XWComboBox], list: LogoList): Unit = list.foreach {
+    case arg: LogoList =>
+      val name = arg.get(0).asInstanceOf[String]
+      val value = arg.get(1).asInstanceOf[String]
+      args(name).selectedItem = value
+    case x =>
+      ws.warningMessage("Invalid selection item: " + x.toString)
+  }
+
+  private def setAvailableArguments(list: LogoList, panel: JPanel, update: () => Unit): Map[String, XWComboBox] = {
+    val newArgs = assembleArguments(list, update)
+    layoutArgumentPanel(panel, newArgs, update)
+    newArgs
+  }
+
+  private def assembleArguments(argumentList: LogoList, update: () => Unit): Map[String, XWComboBox] = {
+    val (names, items) = argumentList.map(_.asInstanceOf[LogoList]).map { l =>
       l.get(0).toString -> l.get(1).asInstanceOf[LogoList].map(_.toString)
     }.toSeq.unzip
-    procedureArguments = names.zip(items.map {
+    names.zip(items.map {
       opts =>
-        val chooser: XWComboBox = new XWComboBox(() => Relationship.this.updateInState(kind.selectedProcedureArguments))
+        val chooser: XWComboBox = new XWComboBox(() => update())
         chooser.items = opts.toSeq
         chooser
     }).toMap
-
-    procedureArgumentPanel.removeAll()
-    procedureArgumentPanel.setLayout(new MigLayout())
-    procedureArguments.foreach {
-      case (name: String, selector: XWComboBox) =>
-        procedureArgumentPanel.add(new JLabel(name))
-        procedureArgumentPanel.add(selector, "grow, wrap")
-        selector.onItemStateChanged { event =>
-          if (event.getStateChange == ItemEvent.SELECTED)
-            updateInState(kind.selectedProcedureArguments)
-        }
-        if (selector.getItemCount > 0) selector.setSelectedIndex(0)
-        updateInState(kind.selectedProcedureArguments)
-    }
-    procedureArgumentPanel.revalidate()
   }
 
-
+  private def layoutArgumentPanel[T <: ExtraWidget, S](panel: JPanel, arguments: Map[String, XWComboBox], update: () => Unit) = {
+    panel.removeAll()
+    panel.setLayout(new MigLayout())
+    arguments.foreach {
+      case (name: String, selector: XWComboBox) =>
+        panel.add(new JLabel(name))
+        panel.add(selector, "grow, wrap")
+        selector.onItemStateChanged(event => if (event.getStateChange == ItemEvent.SELECTED) update())
+        if (selector.getItemCount > 0) selector.setSelectedIndex(0)
+        update()
+    }
+    panel.revalidate()
+  }
 }
 
 class XWComboBox(selectionCallback: ()=>Unit) extends JComboBox {
@@ -274,4 +290,14 @@ object Enhancer {
 
   implicit def toLogoSeq(seq: Seq[AnyRef]): LogoSeq = LogoSeq(seq)
 
+  def tryCompilation(ws: GUIWorkspace, owner: SimpleJobOwner, code: () => String)(e: ActionEvent) = {
+    try ws.evaluateCommands(owner, code(), ws.world.observers, waitForCompletion = false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  }
+
+  def makeButton[T](text: String, f: ActionEvent => T) = {
+    val b = new JButton(text)
+    b.onActionPerformed(f)
+    b
+  }
 }
