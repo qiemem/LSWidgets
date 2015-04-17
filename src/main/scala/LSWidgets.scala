@@ -126,6 +126,9 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val deleteCommandProperty = new StringProperty[W]("DELETE-COMMAND",
     Some(_.deleteCommand = _), _.deleteCommand)
 
+  val runCommandProperty = new StringProperty[W]("RUN-COMMAND",
+    Some(_.runCommand = _), _.runCommand)
+
   val selectedProcedureArguments = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENTS",
     Some((w, l) => w.selectedProcedureArguments = l), _.selectedProcedureArguments)
 
@@ -146,6 +149,7 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     availableProceduresProperty,
     saveCommandProperty,
     deleteCommandProperty,
+    runCommandProperty,
     selectedProcedureArguments,
     availableProcedureArguments,
     selectedAgentsetArguments,
@@ -167,6 +171,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   var saveCommand = ""
   var deleteCommand = ""
+  var runCommand = ""
 
   removeAll()
   setLayout(new MigLayout("insets 5"))
@@ -193,6 +198,9 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   val deleteButton = makeButton("delete", tryCompilation(ws, owner, () => deleteCommand))
   buttonPanel.add(deleteButton)
+
+  val runButton = makeButton("run", tryCompilation(ws, owner, () => runCommand))
+  buttonPanel.add(runButton)
 
   add(buttonPanel, "grow, span")
 
