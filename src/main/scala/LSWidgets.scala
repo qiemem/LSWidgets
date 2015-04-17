@@ -1,6 +1,7 @@
 package org.levelspace
 
-import java.awt.event.{ItemEvent, TextEvent, TextListener}
+import java.awt.Dimension
+import java.awt.event.{ItemEvent, TextEvent, TextListener, ActionEvent}
 import javax.swing.SpringLayout._
 import javax.swing.event.{DocumentEvent, DocumentListener}
 import javax.swing._
@@ -50,62 +51,38 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
     },
     false
   )
-  val springLayout = new SpringLayout()
-  setLayout(springLayout)
-  val bigSpace = 5
-  val smallSpace = 3
 
-  val saveButton = new JButton("save")
-  saveButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, saveCommand, ws.world.observers, false)
-    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
-  )
-  springLayout.putConstraint(NORTH, saveButton, bigSpace, NORTH, this)
-  springLayout.putConstraint(WEST, saveButton, bigSpace, WEST, this)
-  add(saveButton)
+  val saveButton: JButton = makeButton("save", tryCompilation(() => saveCommand))
+  val deleteButton: JButton = makeButton("delete", tryCompilation(() => deleteCommand))
+  val nameField: JTextField = boundTextField(10, kind.nameProperty)
+  val argField: JTextField = boundTextField(0, kind.argProperty)
 
-  val deleteButton = new JButton("delete")
-  deleteButton.onActionPerformed(_ =>
-    try ws.evaluateCommands(owner, deleteCommand, ws.world.observers, waitForCompletion = false)
-    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
-  )
-  springLayout.putConstraint(NORTH, deleteButton, bigSpace, NORTH, this)
-  springLayout.putConstraint(WEST, deleteButton, bigSpace, EAST, saveButton)
-  add(deleteButton)
+  removeAll()
+  setLayout(new BoxLayout(this, BoxLayout.Y_AXIS))
+  add(buttonPanel)
+  add(Box.createRigidArea(new Dimension(0, 3)))
+  add(inputPanel)
 
-  val nameLabel = new JLabel("Name:")
-  springLayout.putConstraint(WEST, nameLabel, bigSpace, WEST, this)
-  springLayout.putConstraint(NORTH, nameLabel, bigSpace, SOUTH, saveButton)
-  springLayout.putConstraint(NORTH, nameLabel, bigSpace, SOUTH, deleteButton)
-  add(nameLabel)
+  def buttonPanel: JPanel = {
+    val panel = new JPanel()
+    panel.setLayout(new MigLayout("insets 5"))
+    panel.add(saveButton)
+    panel.add(deleteButton)
+    panel.setPreferredSize(panel.getMinimumSize())
+    panel.setMaximumSize(panel.getMinimumSize())
+    panel
+  }
 
-  val nameField = new JTextField(10)
-  bindToProperty(nameField, kind.nameProperty)
-  springLayout.putConstraint(WEST, nameField, smallSpace, EAST, nameLabel)
-  springLayout.putConstraint(EAST, nameField, -bigSpace, EAST, this)
-  springLayout.putConstraint(NORTH, nameField, bigSpace, SOUTH, saveButton)
-  springLayout.putConstraint(NORTH, nameField, bigSpace, SOUTH, deleteButton)
-  add(nameField)
-
-  val argLabel = new JLabel("Argument names:")
-  springLayout.putConstraint(WEST, argLabel, bigSpace, WEST, this)
-  springLayout.putConstraint(NORTH, argLabel, bigSpace+bigSpace, SOUTH, nameLabel)
-  add(argLabel)
-
-  val argField = new JTextField()
-  bindToProperty(argField, kind.argProperty)
-  springLayout.putConstraint(WEST, argField, smallSpace, EAST, argLabel)
-  springLayout.putConstraint(NORTH, argField, smallSpace, SOUTH, nameField)
-  springLayout.putConstraint(EAST, argField, -bigSpace, EAST, this)
-  add(argField)
-
-  val scrollPane = new JScrollPane(editor)
-  springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, argLabel)
-  springLayout.putConstraint(NORTH, scrollPane, bigSpace, SOUTH, argField)
-  springLayout.putConstraint(WEST, scrollPane, bigSpace, WEST, this)
-  springLayout.putConstraint(SOUTH, scrollPane, -bigSpace, SOUTH, this)
-  springLayout.putConstraint(EAST, scrollPane, -bigSpace, EAST, this)
-  add(scrollPane)
+  def inputPanel: JPanel = {
+    val panel = new JPanel()
+    panel.setLayout(new MigLayout("fill, insets 0 5 5 5", "[][fill,grow]", "[][][][growprio 150]"))
+    panel.add(new JLabel("Name:"), "shrink")
+    panel.add(nameField, "growx, spanx, wrap")
+    panel.add(new JLabel("Argument names:"), "shrink")
+    panel.add(argField, "growx, spanx, wrap")
+    panel.add(new JScrollPane(editor), "grow, spanx, spany, gapbottom 5")
+    panel
+  }
 
   def bindToProperty(field: JTextField, property: StringProperty[this.type]) =
     field.getDocument().addDocumentListener(new DocumentListener {
@@ -113,6 +90,23 @@ class ProcedureWidget(val key: WidgetKey, val state: State, val ws: GUIWorkspace
       override def removeUpdate(e: DocumentEvent): Unit = updateInState(property)
       override def insertUpdate(e: DocumentEvent): Unit = updateInState(property)
     })
+
+  private def tryCompilation(code: () => String)(e: ActionEvent) = {
+    try ws.evaluateCommands(owner, code(), ws.world.observers, waitForCompletion = false)
+    catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
+  }
+
+  private def boundTextField(i: Int, prop: StringProperty[this.type]) = {
+    val t = new JTextField(i)
+    bindToProperty(t, prop)
+    t
+  }
+
+  private def makeButton[T](text: String, f: ActionEvent => T) = {
+    val b = new JButton(text)
+    b.onActionPerformed(f)
+    b
+  }
 }
 
 class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
