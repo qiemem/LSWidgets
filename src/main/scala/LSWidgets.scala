@@ -187,14 +187,14 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   removeAll()
   setLayout(new MigLayout("insets 5"))
-  add(new JLabel("ask"), "align right")
+  add(new JLabel("extended agentset"), "align right")
   val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty))
   add(agentSelector, "grow, wrap")
 
   val agentArgumentPanel = new JPanel()
   add(agentArgumentPanel, "grow, span, wrap")
 
-  add(new JLabel("to do"), "align right")
+  add(new JLabel("commands"), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
   procedureSelector.onItemStateChanged { event ⇒
     if (event.getStateChange == ItemEvent.SELECTED)
