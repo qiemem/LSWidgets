@@ -183,10 +183,6 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   add(new JLabel("commands"), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
-  procedureSelector.onItemStateChanged { event ⇒
-    if (event.getStateChange == ItemEvent.SELECTED)
-      updateInState(kind.selectedProcedureProperty)
-  }
   add(procedureSelector, "grow, wrap")
 
   val procedureArgumentPanel = new JPanel()
