@@ -55,8 +55,10 @@ class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUI
     false
   )
 
-  val saveButton: JButton = makeButton("save", tryCompilation(ws, owner, () => saveCommand))
-  val deleteButton: JButton = makeButton("delete", tryCompilation(ws, owner, () => deleteCommand))
+  val saveButton: JButton = makeButton(
+    "agentset.save", tryCompilation(ws, owner, () => saveCommand))
+  val deleteButton: JButton = makeButton(
+    "agentset.delete", tryCompilation(ws, owner, () => deleteCommand))
   val nameField: JTextField = boundTextField(10, kind.nameProperty)
   val argField: JTextField = boundTextField(0, kind.argProperty)
 
@@ -79,9 +81,9 @@ class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUI
   def inputPanel: JPanel = {
     val panel = new JPanel()
     panel.setLayout(new MigLayout("fill, insets 0 5 5 5", "[][fill,grow]", "[][][][growprio 150]"))
-    panel.add(new JLabel("Name:"), "shrink")
+    panel.add(new JLabel(I18N.get("agentset.name")), "shrink")
     panel.add(nameField, "growx, spanx, wrap")
-    panel.add(new JLabel("Argument names:"), "shrink")
+    panel.add(new JLabel(I18N.get("agentset.argument_names")), "shrink")
     panel.add(argField, "growx, spanx, wrap")
     panel.add(new JScrollPane(editor), "grow, spanx, spany, gapbottom 5")
     panel
@@ -175,7 +177,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
 
   removeAll()
   setLayout(new MigLayout("insets 5"))
-  add(new JLabel("extended agentset"), "align right")
+  add(new JLabel(I18N.get("relationship.agentset")), "align right")
   val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty))
   add(agentSelector, "grow, wrap")
 
@@ -185,7 +187,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   val agentsetArgumentPanel = new JPanel()
   add(agentsetArgumentPanel, "grow, span, wrap")
 
-  add(new JLabel("commands"), "align right")
+  add(new JLabel(I18N.get("relationship.commands")), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
   add(procedureSelector, "grow, wrap")
 
@@ -193,13 +195,13 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   add(procedureArgumentPanel, "grow, span, wrap")
 
   val buttonPanel = new JPanel()
-  val saveButton = makeButton("save", tryCompilation(ws, owner, () => saveCommand))
+  val saveButton = makeButton("relationship.save", tryCompilation(ws, owner, () => saveCommand))
   buttonPanel.add(saveButton)
 
-  val deleteButton = makeButton("delete", tryCompilation(ws, owner, () => deleteCommand))
+  val deleteButton = makeButton("relationship.delete", tryCompilation(ws, owner, () => deleteCommand))
   buttonPanel.add(deleteButton)
 
-  val runButton = makeButton("run", tryCompilation(ws, owner, () => runCommand))
+  val runButton = makeButton("relationship.run", tryCompilation(ws, owner, () => runCommand))
   buttonPanel.add(runButton)
 
   add(buttonPanel, "grow, span")
@@ -303,9 +305,19 @@ object Enhancer {
     catch { case e: CompilerException => ws.warningMessage(e.getMessage) }
   }
 
-  def makeButton[T](text: String, f: ActionEvent => T) = {
-    val b = new JButton(text)
+  def makeButton[T](key: String, f: ActionEvent => T) = {
+    val b = new JButton(I18N.get(key))
     b.onActionPerformed(f)
     b
+  }
+}
+
+object I18N {
+  import java.util.{ ResourceBundle, MissingResourceException }
+  private val bundle = ResourceBundle.getBundle("XW_LS_Strings")
+  def get(key: String) = try {
+    bundle.getString(key)
+  } catch {
+    case e: MissingResourceException => key
   }
 }
