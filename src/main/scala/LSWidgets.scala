@@ -1,6 +1,6 @@
 package org.levelspace
 
-import java.awt.Dimension
+import java.awt.{ Dimension, FlowLayout }
 import java.awt.event.{ItemEvent, TextEvent, TextListener, ActionEvent}
 import javax.swing.SpringLayout._
 import javax.swing.event.{DocumentEvent, DocumentListener}
@@ -173,25 +173,22 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   var runCommand = ""
 
   removeAll()
-  setLayout(new MigLayout("insets 5"))
+  setLayout(new MigLayout("insets 5", "", "[][shrink 105][][shrink 105][]"))
   add(new JLabel(I18N.get("relationship.agentset")), "align right")
   val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty))
-  add(agentSelector, "grow, wrap")
-
-  val agentArgumentPanel = new JPanel()
-  add(agentArgumentPanel, "grow, span, wrap")
+  add(agentSelector, "growx, wrap")
 
   val agentsetArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector(() => updateInState(kind.selectedAgentsetArguments), ws)
-  add(agentsetArgumentPanel, "grow, span, wrap")
+  add(agentsetArgumentPanel, "gapleft 0:10:20, spanx, wrap")
 
   add(new JLabel(I18N.get("relationship.commands")), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
-  add(procedureSelector, "grow, wrap")
+  add(procedureSelector, "growx, wrap")
 
   val procedureArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector(() => updateInState(kind.selectedProcedureArguments), ws)
-  add(procedureArgumentPanel, "grow, span, wrap")
+  add(procedureArgumentPanel, "gapleft 0:10:20, spanx, wrap")
 
   val buttonPanel = new JPanel()
   val saveButton = makeButton("relationship.save", tryCompilation(ws, owner, () => saveCommand))
@@ -203,7 +200,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   val runButton = makeButton("relationship.run", tryCompilation(ws, owner, () => runCommand))
   buttonPanel.add(runButton)
 
-  add(buttonPanel, "grow, span")
+  add(buttonPanel, "growx, spanx")
 }
 
 class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPanel {
@@ -251,7 +248,7 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPa
 
   private def layoutArgumentPanel[T <: ExtraWidget, S](arguments: Map[String, XWComboBox]) = {
     removeAll()
-    setLayout(new MigLayout())
+    setLayout(new MigLayout("insets 0"))
     arguments.foreach {
       case (name: String, selector: XWComboBox) =>
         add(new JLabel(name))
