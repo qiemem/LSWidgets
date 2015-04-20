@@ -59,16 +59,10 @@ class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUI
     "agentset.save", tryCompilation(ws, owner, () => saveCommand))
   val deleteButton: JButton = makeButton(
     "agentset.delete", tryCompilation(ws, owner, () => deleteCommand))
-  val nameField: JTextField = boundTextField(10, kind.nameProperty)
-  val argField: JTextField = boundTextField(0, kind.argProperty)
+  val nameField: JTextField = boundTextField(kind.nameProperty)
+  val argField: JTextField = boundTextField(kind.argProperty)
 
-  removeAll()
-  setLayout(new BoxLayout(this, BoxLayout.Y_AXIS))
-  add(buttonPanel)
-  add(Box.createRigidArea(new Dimension(0, 3)))
-  add(inputPanel)
-
-  def buttonPanel: JPanel = {
+  val buttonPanel: JPanel = {
     val panel = new JPanel()
     panel.setLayout(new MigLayout("insets 5"))
     panel.add(saveButton)
@@ -78,7 +72,7 @@ class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUI
     panel
   }
 
-  def inputPanel: JPanel = {
+  val inputPanel: JPanel = {
     val panel = new JPanel()
     panel.setLayout(new MigLayout("fill, insets 0 5 5 5", "[][fill,grow]", "[][][][growprio 150]"))
     panel.add(new JLabel(I18N.get("agentset.name")), "shrink")
@@ -89,6 +83,12 @@ class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUI
     panel
   }
 
+  removeAll()
+  setLayout(new BoxLayout(this, BoxLayout.Y_AXIS))
+  add(buttonPanel)
+  add(Box.createRigidArea(new Dimension(0, 3)))
+  add(inputPanel)
+
   def bindToProperty(field: JTextField, property: StringProperty[this.type]) =
     field.getDocument().addDocumentListener(new DocumentListener {
       override def changedUpdate(e: DocumentEvent): Unit = updateInState(property)
@@ -96,8 +96,8 @@ class ProcedureWidget(val key: WidgetKey, val state: State, implicit val ws: GUI
       override def insertUpdate(e: DocumentEvent): Unit = updateInState(property)
     })
 
-  private def boundTextField(i: Int, prop: StringProperty[this.type]) = {
-    val t = new JTextField(i)
+  private def boundTextField(prop: StringProperty[this.type]) = {
+    val t = new JTextField()
     bindToProperty(t, prop)
     t
   }
