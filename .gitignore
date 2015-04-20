@@ -2,3 +2,4 @@ project
 lib
 target
 *.jar
+*.swp
