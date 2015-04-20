@@ -262,6 +262,8 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPa
 }
 
 class XWComboBox(selectionCallback: ()=>Unit) extends JComboBox {
+  setEditable(true)
+
   def selectedItem: String = Option(getSelectedItem).map(_.toString).getOrElse("")
 
   def selectedItem_=(item: String) = setSelectedItem(item)
