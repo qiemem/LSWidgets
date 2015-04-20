@@ -20,7 +20,7 @@ class ProcedureDisplayWidgetKind[W <: ProcedureDisplayWidget] extends LabeledPan
   val argProperty = new StringProperty[W]("ARGS",
     Some((w, s) => { w.argField.setText(s) }), _.argField.getText)
   val typeProperty = new StringProperty[W]("TYPE",
-    Some((w, s) => { w.typeField.setText(s) }), _.typeField.getText)
+    Some((w, s) => { w.typeText = s }), _.typeText)
   val visibleProperty = new BooleanProperty[W]("VISIBLE",
     Some((w, s) => { w.visibleCheckBox.setSelected(s) }), _.visibleCheckBox.isSelected)
   val defaultProperty = Some(visibleProperty)
@@ -33,9 +33,14 @@ class ProcedureDisplayWidget(val key: WidgetKey, val state: State, val ws: GUIWo
 
   override val kind = new ProcedureDisplayWidgetKind[this.type]
 
+  private val typeSuffix = " named:"
+
+  def typeText: String = typeLabel.getText.dropRight(typeSuffix.length)
+  def typeText_=(newType: String): Unit = typeLabel.setText(newType + typeSuffix)
+
   val nameField: JTextField = new DisabledTextField()
-  val argField: JTextField = new DisabledTextField()
-  val typeField: JTextField = new DisabledTextField()
+  val argField: JTextField  = new DisabledTextField()
+  val typeLabel: JLabel     = new JLabel(typeSuffix)
   val visibleCheckBox: JCheckBox = new JCheckBox()
   visibleCheckBox.addActionListener(new AbstractAction {
     def actionPerformed(e: ActionEvent) =
@@ -44,14 +49,12 @@ class ProcedureDisplayWidget(val key: WidgetKey, val state: State, val ws: GUIWo
 
   removeAll()
   setLayout(new MigLayout("fill, insets 5", "[shrink][grow 105][][]", ""))
-  add(new JLabel(I18N.get("agentset.name")), "shrink")
+  add(typeLabel, "shrink")
   add(nameField, "growx")
   add(new JLabel(I18N.get("agentset.visible")), "shrink")
   add(visibleCheckBox, "pad 7 0 7 0, wrap")
   add(new JLabel(I18N.get("agentset.argument_names")), "shrink")
-  add(argField, "growx, spanx, wrap")
-  add(new JLabel(I18N.get("agentset.type")), "shrink")
-  add(typeField, "growx, spanx")
+  add(argField, "growx, spanx")
 }
 
 class DisabledTextField extends JTextField {
