@@ -132,16 +132,16 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     Some(_.runCommand = _), _.runCommand)
 
   val selectedProcedureArguments = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENTS",
-    Some((w, l) => w.selectedProcedureArguments = l), _.selectedProcedureArguments)
+    Some((w, l) => w.procedureArgumentPanel.selectedArguments = l), _.procedureArgumentPanel.selectedArguments)
 
   val availableProcedureArguments = new ListProperty[W]("AVAILABLE-PROCEDURE-ARGUMENTS",
-    Some((w,l) => w.availableProcedureArguments = l), _.availableProcedureArguments)
+    Some((w,l) => w.procedureArgumentPanel.availableArguments = l), _.procedureArgumentPanel.availableArguments)
 
   val selectedAgentsetArguments = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENTS",
-    Some((w,l) => w.selectedAgentsetArguments = l), _.selectedAgentsetArguments)
+    Some((w,l) => w.agentsetArgumentPanel.selectedArguments = l), _.agentsetArgumentPanel.selectedArguments)
 
   val availableAgentsetArguments = new ListProperty[W]("AVAILABLE-AGENTSET-ARGUMENTS",
-    Some((w,l) => w.availableAgentsetArguments = l), _.availableAgentsetArguments)
+    Some((w,l) => w.agentsetArgumentPanel.availableArguments = l), _.agentsetArgumentPanel.availableArguments)
 
   override val defaultProperty = None
   override def propertySet = super.propertySet ++ Set(
@@ -168,9 +168,6 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
     override def ownsPrimaryJobs = true
   }
 
-  var procedureArguments = Map.empty[String, XWComboBox]
-  var agentsetArguments  = Map.empty[String, XWComboBox]
-
   var saveCommand = ""
   var deleteCommand = ""
   var runCommand = ""
@@ -184,14 +181,16 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   val agentArgumentPanel = new JPanel()
   add(agentArgumentPanel, "grow, span, wrap")
 
-  val agentsetArgumentPanel = new JPanel()
+  val agentsetArgumentPanel: LSArgumentSelector =
+    new LSArgumentSelector(() => updateInState(kind.selectedAgentsetArguments), ws)
   add(agentsetArgumentPanel, "grow, span, wrap")
 
   add(new JLabel(I18N.get("relationship.commands")), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
   add(procedureSelector, "grow, wrap")
 
-  val procedureArgumentPanel = new JPanel()
+  val procedureArgumentPanel: LSArgumentSelector =
+    new LSArgumentSelector(() => updateInState(kind.selectedProcedureArguments), ws)
   add(procedureArgumentPanel, "grow, span, wrap")
 
   val buttonPanel = new JPanel()
@@ -205,31 +204,29 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   buttonPanel.add(runButton)
 
   add(buttonPanel, "grow, span")
+}
 
-  def selectedAgentsetArguments = selectedArguments(agentsetArguments)
-  def selectedAgentsetArguments_=(args: LogoList): Unit = setSelectedArguments(agentsetArguments, args)
+class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPanel {
+  import org.levelspace.Enhancer._
+  private var arguments = Map.empty[String, XWComboBox]
 
-  def availableAgentsetArguments = availableArguments(agentsetArguments)
-  def availableAgentsetArguments_=(args: LogoList) =
-    agentsetArguments = setAvailableArguments(
-      args, agentsetArgumentPanel, () => updateInState(kind.selectedAgentsetArguments))
+  def selectedArguments: LogoList = selectedArgumentsLogoList(arguments)
+  def selectedArguments_=(args: LogoList): Unit = setSelectedArguments(arguments, args)
 
-  def selectedProcedureArguments = selectedArguments(procedureArguments)
-  def selectedProcedureArguments_=(args: LogoList): Unit = setSelectedArguments(procedureArguments, args)
+  def availableArguments: LogoList = availableArgumentsLogoList(arguments)
+  def availableArguments_=(args: LogoList) = {
+    arguments = assembleArguments(args)
+    layoutArgumentPanel(arguments)
+  }
 
-  def availableProcedureArguments = availableArguments(procedureArguments)
-  def availableProcedureArguments_=(args: LogoList) =
-    procedureArguments = setAvailableArguments(
-      args, procedureArgumentPanel, () => updateInState(kind.selectedProcedureArguments))
-
-  private def availableArguments(args: Map[String, XWComboBox]): LogoList =
-    procedureArguments.map {
-      case (name: String, comboBox: XWComboBox) => LogoList(name, comboBox.items.toLogo)
-    }.toSeq.toLogo
-
-  private def selectedArguments(args: Map[String, XWComboBox]): LogoList =
+  private def selectedArgumentsLogoList(args: Map[String, XWComboBox]): LogoList =
     args.map {
       case (name: String, comboBox: XWComboBox) => LogoList(name, comboBox.selectedItem)
+    }.toSeq.toLogo
+
+  private def availableArgumentsLogoList(args: Map[String, XWComboBox]): LogoList =
+    args.map {
+      case (name: String, comboBox: XWComboBox) => LogoList(name, comboBox.items.toLogo)
     }.toSeq.toLogo
 
   private def setSelectedArguments(args: Map[String, XWComboBox], list: LogoList): Unit = list.foreach {
@@ -237,40 +234,33 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
       val name = arg.get(0).asInstanceOf[String]
       val value = arg.get(1).asInstanceOf[String]
       args(name).selectedItem = value
-    case x =>
-      ws.warningMessage("Invalid selection item: " + x.toString)
+    case x => ws.warningMessage("Invalid selection item: " + x.toString)
   }
 
-  private def setAvailableArguments(list: LogoList, panel: JPanel, update: () => Unit): Map[String, XWComboBox] = {
-    val newArgs = assembleArguments(list, update)
-    layoutArgumentPanel(panel, newArgs, update)
-    newArgs
-  }
-
-  private def assembleArguments(argumentList: LogoList, update: () => Unit): Map[String, XWComboBox] = {
+  private def assembleArguments(argumentList: LogoList): Map[String, XWComboBox] = {
     val (names, items) = argumentList.map(_.asInstanceOf[LogoList]).map { l =>
       l.get(0).toString -> l.get(1).asInstanceOf[LogoList].map(_.toString)
     }.toSeq.unzip
     names.zip(items.map {
       opts =>
-        val chooser: XWComboBox = new XWComboBox(() => update())
+        val chooser: XWComboBox = new XWComboBox(changeCallback)
         chooser.items = opts.toSeq
         chooser
     }).toMap
   }
 
-  private def layoutArgumentPanel[T <: ExtraWidget, S](panel: JPanel, arguments: Map[String, XWComboBox], update: () => Unit) = {
-    panel.removeAll()
-    panel.setLayout(new MigLayout())
+  private def layoutArgumentPanel[T <: ExtraWidget, S](arguments: Map[String, XWComboBox]) = {
+    removeAll()
+    setLayout(new MigLayout())
     arguments.foreach {
       case (name: String, selector: XWComboBox) =>
-        panel.add(new JLabel(name))
-        panel.add(selector, "grow, wrap")
-        selector.onItemStateChanged(event => if (event.getStateChange == ItemEvent.SELECTED) update())
+        add(new JLabel(name))
+        add(selector, "grow, wrap")
+        selector.onItemStateChanged(event => if (event.getStateChange == ItemEvent.SELECTED) changeCallback())
         if (selector.getItemCount > 0) selector.setSelectedIndex(0)
-        update()
+        changeCallback()
     }
-    panel.revalidate()
+    revalidate()
   }
 }
 
