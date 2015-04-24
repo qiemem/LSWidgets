@@ -45,6 +45,15 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val downCommandProperty = new StringProperty[W]("DOWN-COMMAND",
     Some(_.downCommand = _), _.downCommand)
 
+  val saveButtonHiddenProperty = new BooleanProperty[W]("SAVE-HIDDEN",
+    Some(_.saveButtonHidden = _), _.saveButtonHidden)
+
+  val upButtonHiddenProperty = new BooleanProperty[W]("UP-HIDDEN",
+    Some(_.upButtonHidden = _), _.upButtonHidden)
+
+  val downButtonHiddenProperty = new BooleanProperty[W]("DOWN-HIDDEN",
+    Some(_.downButtonHidden = _), _.downButtonHidden)
+
   val selectedProcedureArguments = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENTS",
     Some((w, l) => w.procedureArgumentPanel.selectedArguments = l), _.procedureArgumentPanel.selectedArguments)
 
@@ -68,6 +77,9 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     runCommandProperty,
     upCommandProperty,
     downCommandProperty,
+    saveButtonHiddenProperty,
+    upButtonHiddenProperty,
+    downButtonHiddenProperty,
     selectedProcedureArguments,
     availableProcedureArguments,
     selectedAgentsetArguments,
@@ -142,6 +154,15 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
     c.setMaximumSize(new Dimension(width, c.getMaximumSize.height))
     c.revalidate()
   }
+
+  def saveButtonHidden_=(hide: Boolean): Unit = saveButton.setVisible(! hide)
+  def saveButtonHidden: Boolean = saveButton.isVisible
+
+  def upButtonHidden_=(hide: Boolean): Unit = upButton.setVisible(! hide)
+  def upButtonHidden: Boolean = upButton.isVisible
+
+  def downButtonHidden_=(hide: Boolean): Unit = downButton.setVisible(! hide)
+  def downButtonHidden: Boolean = downButton.isVisible
 
   removeAll()
   setLayout(new BoxLayout(this, BoxLayout.X_AXIS))
