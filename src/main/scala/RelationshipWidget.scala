@@ -1,6 +1,8 @@
 package org.levelspace
 
-import javax.swing.{ JPanel, JLabel }
+import java.awt.Dimension
+
+import javax.swing.{ JComponent, JSeparator, JPanel, JLabel, BoxLayout, SwingConstants }
 
 import net.miginfocom.swing._
 
@@ -37,6 +39,12 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val runCommandProperty = new StringProperty[W]("RUN-COMMAND",
     Some(_.runCommand = _), _.runCommand)
 
+  val upCommandProperty = new StringProperty[W]("UP-COMMAND",
+    Some(_.upCommand = _), _.upCommand)
+
+  val downCommandProperty = new StringProperty[W]("DOWN-COMMAND",
+    Some(_.downCommand = _), _.downCommand)
+
   val selectedProcedureArguments = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENTS",
     Some((w, l) => w.procedureArgumentPanel.selectedArguments = l), _.procedureArgumentPanel.selectedArguments)
 
@@ -58,6 +66,8 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     saveCommandProperty,
     deleteCommandProperty,
     runCommandProperty,
+    upCommandProperty,
+    downCommandProperty,
     selectedProcedureArguments,
     availableProcedureArguments,
     selectedAgentsetArguments,
@@ -77,35 +87,66 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   var saveCommand = ""
   var deleteCommand = ""
   var runCommand = ""
+  var upCommand = ""
+  var downCommand = ""
 
-  removeAll()
-  setLayout(new MigLayout("insets 5", "", "[][shrink 105][][shrink 105][]"))
-  add(new JLabel(I18N.get("relationship.agentset")), "align right")
   val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty))
-  add(agentSelector, "growx, wrap")
-
   val agentsetArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector(() => updateInState(kind.selectedAgentsetArguments), ws)
-  add(agentsetArgumentPanel, "gapleft 0:10:20, spanx, wrap")
 
-  add(new JLabel(I18N.get("relationship.commands")), "align right")
   val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
-  add(procedureSelector, "growx, wrap")
-
   val procedureArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector(() => updateInState(kind.selectedProcedureArguments), ws)
-  add(procedureArgumentPanel, "gapleft 0:10:20, spanx, wrap")
 
-  val buttonPanel = new JPanel()
   val saveButton = makeButton("relationship.save", tryCompilation(ws, owner, () => saveCommand))
-  buttonPanel.add(saveButton)
-
   val deleteButton = makeButton("relationship.delete", tryCompilation(ws, owner, () => deleteCommand))
-  buttonPanel.add(deleteButton)
-
   val runButton = makeButton("relationship.run", tryCompilation(ws, owner, () => runCommand))
-  buttonPanel.add(runButton)
+  val upButton = makeButton("relationship.up", tryCompilation(ws, owner, () => upCommand))
+  val downButton = makeButton("relationship.down", tryCompilation(ws, owner, () => downCommand))
 
-  add(buttonPanel, "growx, spanx")
+  val buttonPanel = {
+    val p = new JPanel()
+    p.add(saveButton)
+    p.add(deleteButton)
+    p.add(runButton)
+    p
+  }
+
+  val contentPanel = {
+    val p = new JPanel()
+    p.setLayout(new MigLayout("insets 5 5 5 3", "", "[][shrink 105][][shrink 105][]"))
+    p.add(new JLabel(I18N.get("relationship.agentset")), "align right")
+    p.add(agentSelector, "growx, wrap")
+    p.add(agentsetArgumentPanel, "gapleft 0:10:20, spanx, wrap")
+    p.add(new JLabel(I18N.get("relationship.commands")), "align right")
+    p.add(procedureSelector, "growx, wrap")
+    p.add(procedureArgumentPanel, "gapleft 0:10:20, spanx, wrap")
+    p.add(buttonPanel, "growx, spanx")
+    p
+  }
+
+  val upDownButtonPanel = {
+    val p = new JPanel()
+    p.setLayout(new MigLayout("insets 5 3 5 5", "[shrink]", "[][grow][]"))
+    shrinkX(upButton, 35)
+    p.add(upButton, "wrap")
+    p.add(new JPanel(), "growy, wrap")
+    shrinkX(downButton, 35)
+    p.add(downButton, "")
+    shrinkX(p, p.getPreferredSize.width)
+    p
+  }
+
+  def shrinkX(c: JComponent, width: Int): Unit = {
+    c.setPreferredSize(new Dimension(width, c.getPreferredSize.height))
+    c.setMaximumSize(new Dimension(width, c.getMaximumSize.height))
+    c.revalidate()
+  }
+
+  removeAll()
+  setLayout(new BoxLayout(this, BoxLayout.X_AXIS))
+  add(contentPanel)
+  add(new JSeparator(SwingConstants.VERTICAL))
+  add(upDownButtonPanel)
 }
 
