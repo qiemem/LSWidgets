@@ -7,8 +7,8 @@ import javax.swing.JComboBox
 
 import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichJButton}
 
-class XWComboBox(selectionCallback: ()=>Unit) extends JComboBox {
-  setEditable(true)
+class XWComboBox(selectionCallback: ()=>Unit, editable: Boolean=true) extends JComboBox {
+  setEditable(editable)
 
   def selectedItem: String = Option(getSelectedItem).map(_.toString).getOrElse("")
 
