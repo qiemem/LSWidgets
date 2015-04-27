@@ -102,11 +102,11 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   var upCommand = ""
   var downCommand = ""
 
-  val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty))
+  val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty), false)
   val agentsetArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector(() => updateInState(kind.selectedAgentsetArguments), ws)
 
-  val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty))
+  val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty), false)
   val procedureArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector(() => updateInState(kind.selectedProcedureArguments), ws)
 
