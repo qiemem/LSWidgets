@@ -21,11 +21,17 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val selectedAgentReporterProperty = new StringProperty[W]("SELECTED-AGENT-REPORTER",
     Some((w,s) => w.agentSelector.selectedItem = s), _.agentSelector.selectedItem)
 
+  val selectedAgentReporterIndex = new IntegerProperty[W]("SELECTED-AGENT-REPORTER-INDEX",
+    None, _.agentSelector.getSelectedIndex)
+
   val availableAgentReporterProperty = new ListProperty[W]("AVAILABLE-AGENT-REPORTERS",
     Some((w,l) => w.agentSelector.items = l.scalaIterator.toSeq), _.agentSelector.items.toLogo)
 
   val selectedProcedureProperty = new StringProperty[W]("SELECTED-PROCEDURE",
     Some((w,s) => w.procedureSelector.selectedItem = s), _.procedureSelector.selectedItem)
+
+  val selectedProcedureIndex = new IntegerProperty[W]("SELECTED-PROCEDURE-INDEX",
+    None, _.procedureSelector.getSelectedIndex)
 
   val availableProceduresProperty = new ListProperty[W]("AVAILABLE-PROCEDURES",
     Some((w,l) => w.procedureSelector.items = l.toVector), _.procedureSelector.items.toLogo)
@@ -57,11 +63,17 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val selectedProcedureArguments = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENTS",
     Some((w, l) => w.procedureArgumentPanel.selectedArguments = l), _.procedureArgumentPanel.selectedArguments)
 
+  val selectedProcedureArgumentIndices = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENT-INDICES",
+    None, _.procedureArgumentPanel.selectedArgumentIndices)
+
   val availableProcedureArguments = new ListProperty[W]("AVAILABLE-PROCEDURE-ARGUMENTS",
     Some((w,l) => w.procedureArgumentPanel.availableArguments = l), _.procedureArgumentPanel.availableArguments)
 
   val selectedAgentsetArguments = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENTS",
     Some((w,l) => w.agentsetArgumentPanel.selectedArguments = l), _.agentsetArgumentPanel.selectedArguments)
+
+  val selectedAgentsetArgumentIndices = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENTS-INDICES",
+    None, _.agentsetArgumentPanel.selectedArgumentIndices)
 
   val availableAgentsetArguments = new ListProperty[W]("AVAILABLE-AGENTSET-ARGUMENTS",
     Some((w,l) => w.agentsetArgumentPanel.availableArguments = l), _.agentsetArgumentPanel.availableArguments)
@@ -69,8 +81,10 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   override val defaultProperty = None
   override def propertySet = super.propertySet ++ Set(
     selectedAgentReporterProperty,
+    selectedAgentReporterIndex,
     availableAgentReporterProperty,
     selectedProcedureProperty,
+    selectedProcedureIndex,
     availableProceduresProperty,
     saveCommandProperty,
     deleteCommandProperty,
@@ -81,8 +95,10 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     upButtonHiddenProperty,
     downButtonHiddenProperty,
     selectedProcedureArguments,
+    selectedAgentsetArgumentIndices,
     availableProcedureArguments,
     selectedAgentsetArguments,
+    selectedProcedureArgumentIndices,
     availableAgentsetArguments
   )
 }
@@ -102,13 +118,25 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   var upCommand = ""
   var downCommand = ""
 
-  val agentSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedAgentReporterProperty), false)
+  val agentSelector: XWComboBox = new XWComboBox({ () =>
+    updateInState(kind.selectedAgentReporterProperty)
+    updateInState(kind.selectedAgentReporterIndex)
+  }, false)
   val agentsetArgumentPanel: LSArgumentSelector =
-    new LSArgumentSelector(() => updateInState(kind.selectedAgentsetArguments), ws)
+    new LSArgumentSelector({ () =>
+      updateInState(kind.selectedAgentsetArguments)
+      updateInState(kind.selectedAgentsetArgumentIndices)
+    }, ws)
 
-  val procedureSelector: XWComboBox = new XWComboBox(() => updateInState(kind.selectedProcedureProperty), false)
+  val procedureSelector: XWComboBox = new XWComboBox({ () =>
+    updateInState(kind.selectedProcedureProperty)
+    updateInState(kind.selectedProcedureIndex)
+  }, false)
   val procedureArgumentPanel: LSArgumentSelector =
-    new LSArgumentSelector(() => updateInState(kind.selectedProcedureArguments), ws)
+    new LSArgumentSelector({ () =>
+      updateInState(kind.selectedProcedureArguments)
+      updateInState(kind.selectedProcedureArgumentIndices)
+    }, ws)
 
   val saveButton = makeButton("relationship.save", tryCompilation(ws, owner, () => saveCommand))
   val deleteButton = makeButton("relationship.delete", tryCompilation(ws, owner, () => deleteCommand))

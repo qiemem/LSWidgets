@@ -20,6 +20,10 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPa
   def selectedArguments: LogoList = selectedArgumentsLogoList(arguments)
   def selectedArguments_=(args: LogoList): Unit = setSelectedArguments(arguments, args)
 
+  def selectedArgumentIndices: LogoList = arguments.map {
+    case (name: String, box: XWComboBox) => LogoList(name, Double.box(box.getSelectedIndex))
+  }.toSeq.toLogo
+
   def availableArguments: LogoList = availableArgumentsLogoList(arguments)
   def availableArguments_=(args: LogoList) = {
     arguments = assembleArguments(args)
