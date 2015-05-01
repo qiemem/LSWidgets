@@ -64,7 +64,8 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     Some((w, l) => w.procedureArgumentPanel.selectedArguments = l), _.procedureArgumentPanel.selectedArguments)
 
   val selectedProcedureArgumentIndices = new ListProperty[W]("SELECTED-PROCEDURE-ARGUMENT-INDICES",
-    None, _.procedureArgumentPanel.selectedArgumentIndices)
+    Some((w,l) => w.procedureArgumentPanel.selectedArgumentIndices = l),
+    _.procedureArgumentPanel.selectedArgumentIndices)
 
   val availableProcedureArguments = new ListProperty[W]("AVAILABLE-PROCEDURE-ARGUMENTS",
     Some((w,l) => w.procedureArgumentPanel.availableArguments = l), _.procedureArgumentPanel.availableArguments)
@@ -72,8 +73,8 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   val selectedAgentsetArguments = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENTS",
     Some((w,l) => w.agentsetArgumentPanel.selectedArguments = l), _.agentsetArgumentPanel.selectedArguments)
 
-  val selectedAgentsetArgumentIndices = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENTS-INDICES",
-    None, _.agentsetArgumentPanel.selectedArgumentIndices)
+  val selectedAgentsetArgumentIndices = new ListProperty[W]("SELECTED-AGENTSET-ARGUMENT-INDICES",
+    Some((w,l) => w.agentsetArgumentPanel.selectedArgumentIndices = l), _.agentsetArgumentPanel.selectedArgumentIndices)
 
   val availableAgentsetArguments = new ListProperty[W]("AVAILABLE-AGENTSET-ARGUMENTS",
     Some((w,l) => w.agentsetArgumentPanel.availableArguments = l), _.agentsetArgumentPanel.availableArguments)

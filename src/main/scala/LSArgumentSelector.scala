@@ -24,6 +24,14 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPa
     case (name: String, box: XWComboBox) => LogoList(name, Double.box(box.getSelectedIndex))
   }.toSeq.toLogo
 
+  def selectedArgumentIndices_=(argIndexPairs: LogoList): Unit = argIndexPairs.foreach {
+    case arg: LogoList =>
+      val name = arg.get(0).asInstanceOf[String]
+      val index = arg.get(1).asInstanceOf[Double].toInt
+      arguments(name).setSelectedIndex(index)
+    case x => ws.warningMessage("Invalid selection item: " + x.toString)
+  }
+
   def availableArguments: LogoList = availableArgumentsLogoList(arguments)
   def availableArguments_=(args: LogoList) = {
     arguments = assembleArguments(args)
