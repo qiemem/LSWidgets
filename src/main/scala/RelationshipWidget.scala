@@ -22,7 +22,7 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     Some((w,s) => w.agentSelector.selectedItem = s), _.agentSelector.selectedItem)
 
   val selectedAgentReporterIndex = new IntegerProperty[W]("SELECTED-AGENT-REPORTER-INDEX",
-    Some((w,i) => w.agentSelector.setSelectedIndex(i)), _.agentSelector.getSelectedIndex)
+    Some((w,i) => w.agentSelector.setSelectedIndex(i)), _.agentSelector.getSelectedIndex, -1)
 
   val availableAgentReporterProperty = new ListProperty[W]("AVAILABLE-AGENT-REPORTERS",
     Some((w,l) => w.agentSelector.items = l.scalaIterator.toSeq), _.agentSelector.items.toLogo)
@@ -31,7 +31,7 @@ class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
     Some((w,s) => w.procedureSelector.selectedItem = s), _.procedureSelector.selectedItem)
 
   val selectedProcedureIndex = new IntegerProperty[W]("SELECTED-PROCEDURE-INDEX",
-    Some((w,i) => w.procedureSelector.setSelectedIndex(i)), _.procedureSelector.getSelectedIndex)
+    Some((w,i) => w.procedureSelector.setSelectedIndex(i)), _.procedureSelector.getSelectedIndex, -1)
 
   val availableProceduresProperty = new ListProperty[W]("AVAILABLE-PROCEDURES",
     Some((w,l) => w.procedureSelector.items = l.toVector), _.procedureSelector.items.toLogo)
