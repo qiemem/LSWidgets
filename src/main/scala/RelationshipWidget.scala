@@ -10,7 +10,7 @@ import org.nlogo.api.{LogoList, Observer, SimpleJobOwner}
 import org.nlogo.window.GUIWorkspace
 
 import uk.ac.surrey.xw.api._
-import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichJButton}
+import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichAbstractButton}
 
 class RelationshipKind[W <: Relationship] extends JComponentWidgetKind[W] {
   import org.levelspace.Enhancer._

@@ -5,7 +5,7 @@ import java.awt.event.ItemEvent
 import javax.swing.event.{DocumentEvent, DocumentListener}
 import javax.swing.JComboBox
 
-import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichJButton}
+import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichAbstractButton}
 
 class XWComboBox(selectionCallback: ()=>Unit, editable: Boolean=true) extends JComboBox {
   setEditable(editable)

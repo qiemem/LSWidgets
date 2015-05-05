@@ -7,7 +7,7 @@ import javax.swing.JButton
 import org.nlogo.window.GUIWorkspace
 import org.nlogo.api.{CompilerException, LogoList, SimpleJobOwner}
 
-import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichJButton}
+import uk.ac.surrey.xw.api.swing.{enrichItemSelectable, enrichAbstractButton}
 
 object Enhancer {
   case class LogoSeq(seq: Seq[AnyRef]) {
