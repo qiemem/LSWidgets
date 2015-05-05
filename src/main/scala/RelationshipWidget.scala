@@ -108,6 +108,7 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   import org.levelspace.Enhancer._
 
   override val kind = new RelationshipKind[this.type]
+
   val owner = new SimpleJobOwner(key, ws.world.mainRNG, classOf[Observer]) {
     override def isButton = true
     override def ownsPrimaryJobs = true
@@ -119,36 +120,43 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   var upCommand = ""
   var downCommand = ""
 
+  val procedureTextMax =
+    Config.get("relationship.procedure.text.limit").map(_.toInt)
+
+  val procedureArgMax =
+    Config.get("relationship.arguments.text.limit").map(_.toInt)
+
   val agentSelector: XWComboBox = new XWComboBox({ () =>
     updateInState(kind.selectedAgentReporterProperty)
     updateInState(kind.selectedAgentReporterIndex)
     revalidate()
-  }, false)
+  }, false, maxChars = procedureTextMax)
 
   val agentsetArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector({ () =>
       updateInState(kind.selectedAgentsetArguments)
       updateInState(kind.selectedAgentsetArgumentIndices)
       revalidate()
-    }, ws)
+    }, ws, procedureArgMax)
 
   val procedureSelector: XWComboBox = new XWComboBox({ () =>
     updateInState(kind.selectedProcedureProperty)
     updateInState(kind.selectedProcedureIndex)
     revalidate()
-  }, false)
+  }, false, maxChars = procedureTextMax)
+
   val procedureArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector({ () =>
       updateInState(kind.selectedProcedureArguments)
       updateInState(kind.selectedProcedureArgumentIndices)
       revalidate()
-    }, ws)
+    }, ws, procedureArgMax)
 
-  val saveButton = makeButton("relationship.save", tryCompilation(ws, owner, () => saveCommand))
+  val saveButton   = makeButton("relationship.save",   tryCompilation(ws, owner, () => saveCommand))
   val deleteButton = makeButton("relationship.delete", tryCompilation(ws, owner, () => deleteCommand))
-  val runButton = makeButton("relationship.run", tryCompilation(ws, owner, () => runCommand))
-  val upButton = makeButton("relationship.up", tryCompilation(ws, owner, () => upCommand))
-  val downButton = makeButton("relationship.down", tryCompilation(ws, owner, () => downCommand))
+  val runButton    = makeButton("relationship.run",    tryCompilation(ws, owner, () => runCommand))
+  val upButton     = makeButton("relationship.up",     tryCompilation(ws, owner, () => upCommand))
+  val downButton   = makeButton("relationship.down",   tryCompilation(ws, owner, () => downCommand))
 
   val buttonPanel = {
     val p = new JPanel()
@@ -178,11 +186,11 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   removeAll()
   setLayout(new MigLayout("insets 5 5 5 3", "", "[][shrink 105][][shrink 105][]"))
   add(new JLabel(I18N.get("relationship.agentset")), "align right")
-  add(agentSelector, "growx, wrap")
-  add(agentsetArgumentPanel, "gapleft 0:10:20, spanx, wrap")
+  add(agentSelector, "w 150:200:250, spanx, wrap")
+  add(agentsetArgumentPanel, "gapleft 0:10:20, w 250:300:350, spanx, wrap")
   add(new JLabel(I18N.get("relationship.commands")), "align right")
-  add(procedureSelector, "growx, wrap")
-  add(procedureArgumentPanel, "gapleft 0:10:20, spanx, wrap")
+  add(procedureSelector, "w 150:200:250, spanx, wrap")
+  add(procedureArgumentPanel, "gapleft 0:10:20, w 250:300:350, spanx, wrap")
   add(buttonPanel, "growx, spanx")
 }
 
