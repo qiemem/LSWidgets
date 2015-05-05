@@ -122,21 +122,26 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   val agentSelector: XWComboBox = new XWComboBox({ () =>
     updateInState(kind.selectedAgentReporterProperty)
     updateInState(kind.selectedAgentReporterIndex)
+    revalidate()
   }, false)
+
   val agentsetArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector({ () =>
       updateInState(kind.selectedAgentsetArguments)
       updateInState(kind.selectedAgentsetArgumentIndices)
+      revalidate()
     }, ws)
 
   val procedureSelector: XWComboBox = new XWComboBox({ () =>
     updateInState(kind.selectedProcedureProperty)
     updateInState(kind.selectedProcedureIndex)
+    revalidate()
   }, false)
   val procedureArgumentPanel: LSArgumentSelector =
     new LSArgumentSelector({ () =>
       updateInState(kind.selectedProcedureArguments)
       updateInState(kind.selectedProcedureArgumentIndices)
+      revalidate()
     }, ws)
 
   val saveButton = makeButton("relationship.save", tryCompilation(ws, owner, () => saveCommand))
