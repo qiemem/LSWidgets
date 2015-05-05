@@ -13,7 +13,7 @@ import org.nlogo.window.GUIWorkspace
 
 import uk.ac.surrey.xw.api.swing.enrichItemSelectable
 
-class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPanel {
+class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace, maxTextLength: Option[Int]) extends JPanel {
   import org.levelspace.Enhancer._
   private var arguments = Map.empty[String, XWComboBox]
 
@@ -62,7 +62,7 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace) extends JPa
     }.toSeq.unzip
     names.zip(items.map {
       opts =>
-        val chooser: XWComboBox = new XWComboBox(changeCallback)
+        val chooser: XWComboBox = new XWComboBox(changeCallback, maxChars = maxTextLength)
         chooser.items = opts.toSeq
         chooser
     }).toMap
