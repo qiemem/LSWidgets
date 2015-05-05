@@ -64,7 +64,7 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace, maxTextLeng
     }.toSeq.unzip
     ListMap(names.zip(items.map {
       opts =>
-        val chooser: XWComboBox = new XWComboBox(changeCallback, maxChars = maxTextLength)
+        val chooser: XWComboBox = new XWComboBox(changeCallback, editable = false, maxChars = maxTextLength)
         chooser.items = opts.toSeq
         chooser
     }): _*)
