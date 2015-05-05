@@ -155,31 +155,8 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
     p.add(saveButton)
     p.add(deleteButton)
     p.add(runButton)
-    p
-  }
-
-  val contentPanel = {
-    val p = new JPanel()
-    p.setLayout(new MigLayout("insets 5 5 5 3", "", "[][shrink 105][][shrink 105][]"))
-    p.add(new JLabel(I18N.get("relationship.agentset")), "align right")
-    p.add(agentSelector, "growx, wrap")
-    p.add(agentsetArgumentPanel, "gapleft 0:10:20, spanx, wrap")
-    p.add(new JLabel(I18N.get("relationship.commands")), "align right")
-    p.add(procedureSelector, "growx, wrap")
-    p.add(procedureArgumentPanel, "gapleft 0:10:20, spanx, wrap")
-    p.add(buttonPanel, "growx, spanx")
-    p
-  }
-
-  val upDownButtonPanel = {
-    val p = new JPanel()
-    p.setLayout(new MigLayout("insets 5 3 5 5", "[shrink]", "[][grow][]"))
-    shrinkX(upButton, 35)
-    p.add(upButton, "wrap")
-    p.add(new JPanel(), "growy, wrap")
-    shrinkX(downButton, 35)
-    p.add(downButton, "")
-    shrinkX(p, p.getPreferredSize.width)
+    p.add(upButton)
+    p.add(downButton)
     p
   }
 
@@ -199,9 +176,13 @@ class Relationship(val key: WidgetKey, val state: State, val ws: GUIWorkspace) e
   def downButtonHidden: Boolean = downButton.isVisible
 
   removeAll()
-  setLayout(new BoxLayout(this, BoxLayout.X_AXIS))
-  add(contentPanel)
-  add(new JSeparator(SwingConstants.VERTICAL))
-  add(upDownButtonPanel)
+  setLayout(new MigLayout("insets 5 5 5 3", "", "[][shrink 105][][shrink 105][]"))
+  add(new JLabel(I18N.get("relationship.agentset")), "align right")
+  add(agentSelector, "growx, wrap")
+  add(agentsetArgumentPanel, "gapleft 0:10:20, spanx, wrap")
+  add(new JLabel(I18N.get("relationship.commands")), "align right")
+  add(procedureSelector, "growx, wrap")
+  add(procedureArgumentPanel, "gapleft 0:10:20, spanx, wrap")
+  add(buttonPanel, "growx, spanx")
 }
 
