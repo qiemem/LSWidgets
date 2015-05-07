@@ -79,8 +79,8 @@ class LSArgumentSelector(changeCallback: ()=>Unit, ws: GUIWorkspace, maxTextLeng
         add(selector, "grow, wrap")
         selector.onItemStateChanged(event => if (event.getStateChange == ItemEvent.SELECTED) changeCallback())
         if (selector.getItemCount > 0) selector.setSelectedIndex(0)
-        changeCallback()
     }
+    changeCallback()
     revalidate()
   }
 }
